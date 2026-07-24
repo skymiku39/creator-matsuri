@@ -1,5 +1,5 @@
 import type { Edge } from '@xyflow/react'
-import type { FlowNode } from './exportCsv'
+import type { FlowNode } from './flowGraph'
 import { looksLikeReturnChoice } from './types'
 import { nextId } from '../store/idFactory'
 

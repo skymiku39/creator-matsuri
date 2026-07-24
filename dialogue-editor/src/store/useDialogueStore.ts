@@ -15,11 +15,9 @@ import {
   type DialogueNodeData,
   type DialogueNodeKind,
 } from '../domain/types'
-import type { FlowNode } from '../domain/exportCsv'
-import { rowsToFlow } from '../domain/rowsToFlow'
+import type { FlowNode } from '../domain/flowGraph'
 import type { ConnectPickerState } from './connectPickerTypes'
 import { CONNECTION_ALLOWED } from '../domain/connectionRules'
-import type { ParsedTemplate } from '../domain/importCsv'
 import { nextId, syncIdCounterFromGraph } from './idFactory'
 import { autoCompleteEndNodes } from '../domain/autoCompleteEnd'
 import { getTemplate } from '../domain/templates/catalog'
@@ -208,7 +206,6 @@ interface DialogueState {
   updateNodeData: (id: string, patch: Partial<DialogueNodeData>) => void
   addNode: (kind: DialogueNodeKind) => void
   removeSelected: () => void
-  loadFromParsed: (parsed: ParsedTemplate) => void
   loadProject: (meta: BoothMeta, nodes: FlowNode[], edges: Edge[]) => void
   resetStarter: () => void
   openConnectPicker: (state: ConnectPickerState) => void
@@ -318,22 +315,6 @@ export const useDialogueStore = create<DialogueState>()(
           nodes: get().nodes.filter((n) => n.id !== id),
           edges: get().edges.filter((e) => e.source !== id && e.target !== id),
           selectedId: null,
-        })
-      },
-
-      loadFromParsed: (parsed) => {
-        const { nodes, edges } = rowsToFlow(parsed)
-        syncIdCounterFromGraph(nodes, edges)
-        set({
-          meta: {
-            boothId: normalizeBoothId(parsed.boothId),
-            boothName: parsed.boothName,
-            locale: parsed.locale,
-          },
-          nodes,
-          edges,
-          selectedId: null,
-          connectPicker: null,
         })
       },
 

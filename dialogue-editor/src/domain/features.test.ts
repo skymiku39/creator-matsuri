@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Edge } from '@xyflow/react'
 import { autoCompleteEndNodes } from './autoCompleteEnd'
 import { syncIdCounterFromGraph } from '../store/idFactory'
-import type { FlowNode } from './exportCsv'
+import type { FlowNode } from './flowGraph'
 import {
   advanceSimulation,
   createSimulation,

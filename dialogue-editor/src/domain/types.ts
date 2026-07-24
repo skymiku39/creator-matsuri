@@ -18,13 +18,6 @@ export interface DialogueNodeData extends Record<string, unknown> {
   isReturn?: boolean
 }
 
-export interface CsvRow {
-  id: string
-  description: string
-  zh_TW: string
-  note: string
-}
-
 export interface SimChoiceLayout {
   /** 選項字母 A–F */
   letter: string

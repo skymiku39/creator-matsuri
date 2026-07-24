@@ -1,15 +1,10 @@
 import type { Edge } from '@xyflow/react'
-import {
-  csvRowsToString,
-  flowToCsvRows,
-  type FlowNode,
-} from './exportCsv'
-import { parseCsvText } from './importCsv'
-import { rowsToFlow } from './rowsToFlow'
+import type { FlowNode } from './flowGraph'
 import {
   normalizeBoothId,
   type BoothMeta,
   type DialogueProject,
+  type SimChoiceLayout,
 } from './types'
 
 /** 組出可下載的專案 JSON 字串 */
@@ -27,8 +22,24 @@ export function serializeProject(
   return JSON.stringify(project, null, 2)
 }
 
+function isSimLayout(v: unknown): v is SimChoiceLayout {
+  if (!v || typeof v !== 'object') return false
+  const o = v as Record<string, unknown>
+  return (
+    typeof o.letter === 'string' &&
+    typeof o.xPct === 'number' &&
+    typeof o.yPct === 'number'
+  )
+}
+
+/** 解析並驗證專案 JSON（唯一的匯入格式） */
 export function parseProjectJson(text: string): DialogueProject {
-  const raw: unknown = JSON.parse(text)
+  let raw: unknown
+  try {
+    raw = JSON.parse(text)
+  } catch {
+    throw new Error('專案 JSON 格式無效')
+  }
   if (!raw || typeof raw !== 'object') {
     throw new Error('專案 JSON 不是物件')
   }
@@ -50,14 +61,7 @@ export function parseProjectJson(text: string): DialogueProject {
       ...(Array.isArray(v.meta.simChoiceLayouts)
         ? {
             simChoiceLayouts: v.meta.simChoiceLayouts
-              .filter(
-                (l): l is { letter: string; xPct: number; yPct: number } =>
-                  Boolean(l) &&
-                  typeof l === 'object' &&
-                  typeof (l as { letter?: unknown }).letter === 'string' &&
-                  typeof (l as { xPct?: unknown }).xPct === 'number' &&
-                  typeof (l as { yPct?: unknown }).yPct === 'number',
-              )
+              .filter(isSimLayout)
               .map((l) => ({
                 letter: String(l.letter).toUpperCase(),
                 xPct: l.xPct,
@@ -71,44 +75,12 @@ export function parseProjectJson(text: string): DialogueProject {
   }
 }
 
-/** 匯出含攤位名列的 CSV（含 BOM） */
-export function buildExportCsv(
-  meta: BoothMeta,
-  nodes: FlowNode[],
-  edges: Edge[],
-): string {
-  const boothId = normalizeBoothId(meta.boothId)
-  const rows = flowToCsvRows({ ...meta, boothId }, nodes, edges)
-  const csv = csvRowsToString(rows, meta.locale, true, false)
-  const lines = csv.trimEnd().split('\n')
-  const boothName = meta.boothName || `${boothId}攤位`
-  const escaped =
-    /[",\n\r]/.test(boothName)
-      ? `"${boothName.replace(/"/g, '""')}"`
-      : boothName
-  return `\uFEFF${[lines[0], `,${escaped},,`, ...lines.slice(1)].join('\n')}\n`
-}
-
-/** CSV → 流程 → 再 CSV，用於驗證匯入匯出保真 */
-export function roundtripCsv(csvText: string): {
-  ids: string[]
-  texts: string[]
-  notes: string[]
-} {
-  const parsed = parseCsvText(csvText)
-  const flow = rowsToFlow(parsed)
-  const rows = flowToCsvRows(
-    {
-      boothId: parsed.boothId,
-      boothName: parsed.boothName,
-      locale: parsed.locale,
-    },
-    flow.nodes,
-    flow.edges,
-  )
-  return {
-    ids: rows.map((r) => r.id),
-    texts: rows.map((r) => r.zh_TW),
-    notes: rows.map((r) => r.note),
-  }
+export function downloadText(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }

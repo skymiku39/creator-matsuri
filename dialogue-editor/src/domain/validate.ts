@@ -1,5 +1,5 @@
-import type { FlowEdge, FlowNode } from './exportCsv'
-import { collectExportableIds, findStartMessages } from './exportCsv'
+import type { FlowEdge, FlowNode } from './flowGraph'
+import { collectReachableIds, findStartMessages } from './flowGraph'
 import { looksLikeReturnChoice, type DialogueNodeData } from './types'
 
 export interface ValidationIssue {
@@ -176,21 +176,21 @@ export function validateFlow(
     }
   }
 
-  const { ids: exportable, cycle } = collectExportableIds(nodes, edges)
+  const { ids: reachable, cycle } = collectReachableIds(nodes, edges)
   if (cycle) {
     issues.push({
       level: 'error',
-      message: '流程存在循環連線，請先打斷循環再匯出',
+      message: '流程存在循環連線，請先打斷循環',
     })
   }
 
   for (const n of nodes) {
     const kind = dataOf(n).kind
     if (kind === 'end') continue
-    if (!exportable.has(n.id)) {
+    if (!reachable.has(n.id)) {
       issues.push({
         level: 'error',
-        message: `節點「${dataOf(n).title || dataOf(n).text || n.id}」未連上主幹，匯出時會被省略`,
+        message: `節點「${dataOf(n).title || dataOf(n).text || n.id}」未連上主幹，模擬時不會走到`,
         nodeId: n.id,
       })
     }

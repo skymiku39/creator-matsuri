@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "meta": {
+    "boothId": "04",
+    "boothName": "空白起步",
+    "locale": "zh_TW",
+    "speakerName": "NPC"
+  },
+  "nodes": [
+    {
+      "id": "msg_1",
+      "type": "message",
+      "position": {
+        "x": 80,
+        "y": 40
+      },
+      "data": {
+        "kind": "message",
+        "title": "開場01",
+        "text": "「……」（請改成你的開場白）",
+        "note": ""
+      }
+    },
+    {
+      "id": "menu_2",
+      "type": "choiceMenu",
+      "position": {
+        "x": 80,
+        "y": 150
+      },
+      "data": {
+        "kind": "choiceMenu",
+        "title": "對話選項",
+        "text": "",
+        "note": "每個選項分支建議包含返回選單的選項"
+      }
+    },
+    {
+      "id": "choice_4",
+      "type": "choice",
+      "position": {
+        "x": 420,
+        "y": 40
+      },
+      "data": {
+        "kind": "choice",
+        "title": "選項A",
+        "text": "新選項",
+        "note": "",
+        "isReturn": false
+      }
+    },
+    {
+      "id": "msg_6",
+      "type": "message",
+      "position": {
+        "x": 420,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項A內容01",
+        "text": "「請填寫回覆內容。」",
+        "note": ""
+      }
+    },
+    {
+      "id": "choice_8",
+      "type": "choice",
+      "position": {
+        "x": 700,
+        "y": 40
+      },
+      "data": {
+        "kind": "choice",
+        "title": "選項B",
+        "text": "等一下再過來",
+        "note": "",
+        "isReturn": true
+      }
+    },
+    {
+      "id": "msg_10",
+      "type": "message",
+      "position": {
+        "x": 700,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項B內容01",
+        "text": "「好的，等等見。」",
+        "note": ""
+      }
+    },
+    {
+      "id": "end_12",
+      "type": "end",
+      "position": {
+        "x": 700,
+        "y": 260
+      },
+      "data": {
+        "kind": "end",
+        "title": "結束／返回",
+        "text": "",
+        "note": ""
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_3",
+      "source": "msg_1",
+      "target": "menu_2"
+    },
+    {
+      "id": "e_5",
+      "source": "menu_2",
+      "target": "choice_4",
+      "sourceHandle": "opt-A",
+      "label": "A"
+    },
+    {
+      "id": "e_7",
+      "source": "choice_4",
+      "target": "msg_6"
+    },
+    {
+      "id": "e_9",
+      "source": "menu_2",
+      "target": "choice_8",
+      "sourceHandle": "opt-B",
+      "label": "B"
+    },
+    {
+      "id": "e_11",
+      "source": "choice_8",
+      "target": "msg_10"
+    },
+    {
+      "id": "e_13",
+      "source": "msg_10",
+      "target": "end_12"
+    }
+  ]
+}

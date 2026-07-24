@@ -11,7 +11,7 @@ export function TutorialPage() {
         <header className="page-hero">
           <p className="eyebrow">創作者的文化祭</p>
           <h1>台詞流程編輯器教學</h1>
-          <p>從流程圖到 RPGMV／MZ 語句表，四步驟上手。</p>
+          <p>從流程圖到可模擬的對話，四步驟上手。</p>
         </header>
 
         <section>
@@ -30,7 +30,7 @@ export function TutorialPage() {
           <ol>
             <li>從節點邊緣的 <strong>+</strong> 點擊，會浮出「可以接到誰」</li>
             <li>也可直接從 + 拖曳到目標節點</li>
-            <li>選單右側 A～F 對應選項字母，匯出時會變成 <code>01_A_Name</code></li>
+            <li>選單右側 A～F 對應選項字母</li>
           </ol>
         </section>
 
@@ -48,38 +48,16 @@ export function TutorialPage() {
           <ol>
             <li>到 <Link to="/simulate">對話模擬</Link> 像遊戲一樣走一遍</li>
             <li>編輯器與模擬頁共用同一份專案（會自動存到瀏覽器）</li>
-            <li>確認無誤後，匯出 CSV／Excel 接到 RPG Maker</li>
+            <li>確認無誤後，用 <strong>匯出 JSON</strong> 備份；之後可用 <strong>匯入 JSON</strong> 完整還原節點與連線</li>
           </ol>
         </section>
 
         <section>
-          <h2>匯出編號對照</h2>
-          <table className="doc-table">
-            <thead>
-              <tr>
-                <th>流程</th>
-                <th>編號</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>開場對話</td>
-                <td><code>01_Msg01</code>…</td>
-              </tr>
-              <tr>
-                <td>選項文字</td>
-                <td><code>01_A_Name</code></td>
-              </tr>
-              <tr>
-                <td>選項內容</td>
-                <td><code>01_A_Content01</code>…</td>
-              </tr>
-              <tr>
-                <td>超連結</td>
-                <td><code>01_A_URL</code></td>
-              </tr>
-            </tbody>
-          </table>
+          <h2>專案檔內容</h2>
+          <p>
+            JSON 會保存攤位資訊、所有節點位置／台詞、連線，以及模擬頁的選項位置。
+            這是編輯器唯一的匯入／匯出格式。
+          </p>
         </section>
 
         <p className="page-cta">

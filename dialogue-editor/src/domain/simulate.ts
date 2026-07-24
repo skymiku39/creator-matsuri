@@ -2,7 +2,7 @@ import type { Edge } from '@xyflow/react'
 import {
   findStartMessages,
   type FlowNode,
-} from './exportCsv'
+} from './flowGraph'
 import { looksLikeReturnChoice } from './types'
 
 export type SimPhase =

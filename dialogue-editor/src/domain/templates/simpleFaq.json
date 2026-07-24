@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "meta": {
+    "boothId": "02",
+    "boothName": "簡易問答攤位",
+    "locale": "zh_TW",
+    "speakerName": "攤位店員"
+  },
+  "nodes": [
+    {
+      "id": "msg_1",
+      "type": "message",
+      "position": {
+        "x": 80,
+        "y": 40
+      },
+      "data": {
+        "kind": "message",
+        "title": "開場01",
+        "text": "「歡迎光臨簡易問答攤位！」",
+        "note": ""
+      }
+    },
+    {
+      "id": "msg_2",
+      "type": "message",
+      "position": {
+        "x": 80,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "開場02",
+        "text": "「有什麼想問的嗎？」",
+        "note": ""
+      }
+    },
+    {
+      "id": "menu_4",
+      "type": "choiceMenu",
+      "position": {
+        "x": 80,
+        "y": 260
+      },
+      "data": {
+        "kind": "choiceMenu",
+        "title": "對話選項",
+        "text": "",
+        "note": "每個選項分支建議包含返回選單的選項"
+      }
+    },
+    {
+      "id": "choice_6",
+      "type": "choice",
+      "position": {
+        "x": 420,
+        "y": 40
+      },
+      "data": {
+        "kind": "choice",
+        "title": "選項A",
+        "text": "活動時間",
+        "note": "",
+        "isReturn": false
+      }
+    },
+    {
+      "id": "msg_8",
+      "type": "message",
+      "position": {
+        "x": 420,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項A內容01",
+        "text": "「活動從早上十點持續到晚上八點喔。」",
+        "note": ""
+      }
+    },
+    {
+      "id": "choice_10",
+      "type": "choice",
+      "position": {
+        "x": 700,
+        "y": 40
+      },
+      "data": {
+        "kind": "choice",
+        "title": "選項B",
+        "text": "等一下再過來",
+        "note": "",
+        "isReturn": true
+      }
+    },
+    {
+      "id": "msg_12",
+      "type": "message",
+      "position": {
+        "x": 700,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項B內容01",
+        "text": "「好的，待會見～」",
+        "note": ""
+      }
+    },
+    {
+      "id": "end_14",
+      "type": "end",
+      "position": {
+        "x": 700,
+        "y": 260
+      },
+      "data": {
+        "kind": "end",
+        "title": "結束／返回",
+        "text": "",
+        "note": ""
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_3",
+      "source": "msg_1",
+      "target": "msg_2"
+    },
+    {
+      "id": "e_5",
+      "source": "msg_2",
+      "target": "menu_4"
+    },
+    {
+      "id": "e_7",
+      "source": "menu_4",
+      "target": "choice_6",
+      "sourceHandle": "opt-A",
+      "label": "A"
+    },
+    {
+      "id": "e_9",
+      "source": "choice_6",
+      "target": "msg_8"
+    },
+    {
+      "id": "e_11",
+      "source": "menu_4",
+      "target": "choice_10",
+      "sourceHandle": "opt-B",
+      "label": "B"
+    },
+    {
+      "id": "e_13",
+      "source": "choice_10",
+      "target": "msg_12"
+    },
+    {
+      "id": "e_15",
+      "source": "msg_12",
+      "target": "end_14"
+    }
+  ]
+}

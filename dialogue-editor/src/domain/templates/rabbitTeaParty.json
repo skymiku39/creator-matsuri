@@ -1,0 +1,460 @@
+{
+  "version": 1,
+  "meta": {
+    "boothId": "01",
+    "boothName": "01攤位",
+    "locale": "zh_TW",
+    "speakerName": "Mirai"
+  },
+  "nodes": [
+    {
+      "id": "msg_1",
+      "type": "message",
+      "position": {
+        "x": 80,
+        "y": 40
+      },
+      "data": {
+        "kind": "message",
+        "title": "01攤位對話01",
+        "text": "「你好啊~ 這裡是《兔子茶會 RabbitTeaParty》的官方攤位喔！」",
+        "note": ""
+      }
+    },
+    {
+      "id": "msg_2",
+      "type": "message",
+      "position": {
+        "x": 80,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "01攤位對話02",
+        "text": "「那麼關於本次活動你想問什麼呢？」",
+        "note": ""
+      }
+    },
+    {
+      "id": "menu_4",
+      "type": "choiceMenu",
+      "position": {
+        "x": 80,
+        "y": 260
+      },
+      "data": {
+        "kind": "choiceMenu",
+        "title": "對話選項",
+        "text": "",
+        "note": "每個選項分支建議包含返回選單的選項"
+      }
+    },
+    {
+      "id": "choice_6",
+      "type": "choice",
+      "position": {
+        "x": 420,
+        "y": 40
+      },
+      "data": {
+        "kind": "choice",
+        "title": "選項A",
+        "text": "再次辦活動的原因",
+        "note": "一共有5個對話選項，可以依照創作的性質自訂，\n但每個對話選項之中必須包含返回的選項。",
+        "isReturn": false
+      }
+    },
+    {
+      "id": "msg_8",
+      "type": "message",
+      "position": {
+        "x": 420,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項A內容01",
+        "text": "「關於這點..原先只是想找人接手我這個線上活動的..」",
+        "note": ""
+      }
+    },
+    {
+      "id": "msg_10",
+      "type": "message",
+      "position": {
+        "x": 420,
+        "y": 260
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項A內容02",
+        "text": "「不知不覺就變成再次舉辦線上活動。」",
+        "note": ""
+      }
+    },
+    {
+      "id": "msg_12",
+      "type": "message",
+      "position": {
+        "x": 420,
+        "y": 370
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項A內容03",
+        "text": "「這次活動我會使用 RPG Maker MZ 作為線上擺攤的會場。」",
+        "note": ""
+      }
+    },
+    {
+      "id": "msg_14",
+      "type": "message",
+      "position": {
+        "x": 420,
+        "y": 480
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項A內容04",
+        "text": "「如果有興趣的話可以前往關注下我們活動的相關資訊喔~」",
+        "note": ""
+      }
+    },
+    {
+      "id": "url_16",
+      "type": "url",
+      "position": {
+        "x": 420,
+        "y": 590
+      },
+      "data": {
+        "kind": "url",
+        "title": "選項A連結",
+        "text": "https://rabbitteaparty.blogspot.com/2021/12/RabbitTeaParty01.html",
+        "note": "此為超連結"
+      }
+    },
+    {
+      "id": "choice_18",
+      "type": "choice",
+      "position": {
+        "x": 700,
+        "y": 40
+      },
+      "data": {
+        "kind": "choice",
+        "title": "選項B",
+        "text": "未來還會再舉辦嗎？",
+        "note": "",
+        "isReturn": false
+      }
+    },
+    {
+      "id": "msg_20",
+      "type": "message",
+      "position": {
+        "x": 700,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項B內容01",
+        "text": "「先不要..光是將近六個月的籌備就夠我們忙了。」",
+        "note": ""
+      }
+    },
+    {
+      "id": "msg_22",
+      "type": "message",
+      "position": {
+        "x": 700,
+        "y": 260
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項B內容02",
+        "text": "「不過..我們會考慮看看再次舉辦的可能性。」",
+        "note": ""
+      }
+    },
+    {
+      "id": "choice_24",
+      "type": "choice",
+      "position": {
+        "x": 980,
+        "y": 40
+      },
+      "data": {
+        "kind": "choice",
+        "title": "選項C",
+        "text": "這裡是哪裡？",
+        "note": "",
+        "isReturn": false
+      }
+    },
+    {
+      "id": "msg_26",
+      "type": "message",
+      "position": {
+        "x": 980,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項C內容01",
+        "text": "「你說這裡是哪裡？」 ",
+        "note": "頭上要顯示「問號」氣泡"
+      }
+    },
+    {
+      "id": "msg_28",
+      "type": "message",
+      "position": {
+        "x": 980,
+        "y": 260
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項C內容02",
+        "text": "「其實這個會場是向Vtuber社團『MIX米克斯學園』借來的學校場地。」 ",
+        "note": ""
+      }
+    },
+    {
+      "id": "msg_30",
+      "type": "message",
+      "position": {
+        "x": 980,
+        "y": 370
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項C內容03",
+        "text": "「如果有興趣的話，可以前往關注下她們的Twitter(X)喔~」",
+        "note": ""
+      }
+    },
+    {
+      "id": "url_32",
+      "type": "url",
+      "position": {
+        "x": 980,
+        "y": 480
+      },
+      "data": {
+        "kind": "url",
+        "title": "選項C連結",
+        "text": "https://x.com/MixMimimix",
+        "note": "此為超連結"
+      }
+    },
+    {
+      "id": "choice_34",
+      "type": "choice",
+      "position": {
+        "x": 1260,
+        "y": 40
+      },
+      "data": {
+        "kind": "choice",
+        "title": "選項D",
+        "text": "追隨Twitter(X)",
+        "note": "",
+        "isReturn": false
+      }
+    },
+    {
+      "id": "msg_36",
+      "type": "message",
+      "position": {
+        "x": 1260,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項D內容01",
+        "text": "「可以喔！如果有新的消息我們也都會發文在這邊的。」 ",
+        "note": ""
+      }
+    },
+    {
+      "id": "url_38",
+      "type": "url",
+      "position": {
+        "x": 1260,
+        "y": 260
+      },
+      "data": {
+        "kind": "url",
+        "title": "選項D連結",
+        "text": "https://x.com/RabbitTeaPartyA",
+        "note": "此為超連結"
+      }
+    },
+    {
+      "id": "choice_40",
+      "type": "choice",
+      "position": {
+        "x": 1540,
+        "y": 40
+      },
+      "data": {
+        "kind": "choice",
+        "title": "選項E",
+        "text": "等一下再過來",
+        "note": "",
+        "isReturn": true
+      }
+    },
+    {
+      "id": "msg_42",
+      "type": "message",
+      "position": {
+        "x": 1540,
+        "y": 150
+      },
+      "data": {
+        "kind": "message",
+        "title": "選項E內容01",
+        "text": "「好的，等等見。」 ",
+        "note": ""
+      }
+    },
+    {
+      "id": "end_44",
+      "type": "end",
+      "position": {
+        "x": 1540,
+        "y": 260
+      },
+      "data": {
+        "kind": "end",
+        "title": "結束／返回",
+        "text": "",
+        "note": ""
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_3",
+      "source": "msg_1",
+      "target": "msg_2"
+    },
+    {
+      "id": "e_5",
+      "source": "msg_2",
+      "target": "menu_4"
+    },
+    {
+      "id": "e_7",
+      "source": "menu_4",
+      "target": "choice_6",
+      "sourceHandle": "opt-A",
+      "label": "A"
+    },
+    {
+      "id": "e_9",
+      "source": "choice_6",
+      "target": "msg_8"
+    },
+    {
+      "id": "e_11",
+      "source": "msg_8",
+      "target": "msg_10"
+    },
+    {
+      "id": "e_13",
+      "source": "msg_10",
+      "target": "msg_12"
+    },
+    {
+      "id": "e_15",
+      "source": "msg_12",
+      "target": "msg_14"
+    },
+    {
+      "id": "e_17",
+      "source": "msg_14",
+      "target": "url_16"
+    },
+    {
+      "id": "e_19",
+      "source": "menu_4",
+      "target": "choice_18",
+      "sourceHandle": "opt-B",
+      "label": "B"
+    },
+    {
+      "id": "e_21",
+      "source": "choice_18",
+      "target": "msg_20"
+    },
+    {
+      "id": "e_23",
+      "source": "msg_20",
+      "target": "msg_22"
+    },
+    {
+      "id": "e_25",
+      "source": "menu_4",
+      "target": "choice_24",
+      "sourceHandle": "opt-C",
+      "label": "C"
+    },
+    {
+      "id": "e_27",
+      "source": "choice_24",
+      "target": "msg_26"
+    },
+    {
+      "id": "e_29",
+      "source": "msg_26",
+      "target": "msg_28"
+    },
+    {
+      "id": "e_31",
+      "source": "msg_28",
+      "target": "msg_30"
+    },
+    {
+      "id": "e_33",
+      "source": "msg_30",
+      "target": "url_32"
+    },
+    {
+      "id": "e_35",
+      "source": "menu_4",
+      "target": "choice_34",
+      "sourceHandle": "opt-D",
+      "label": "D"
+    },
+    {
+      "id": "e_37",
+      "source": "choice_34",
+      "target": "msg_36"
+    },
+    {
+      "id": "e_39",
+      "source": "msg_36",
+      "target": "url_38"
+    },
+    {
+      "id": "e_41",
+      "source": "menu_4",
+      "target": "choice_40",
+      "sourceHandle": "opt-E",
+      "label": "E"
+    },
+    {
+      "id": "e_43",
+      "source": "choice_40",
+      "target": "msg_42"
+    },
+    {
+      "id": "e_45",
+      "source": "msg_42",
+      "target": "end_44"
+    }
+  ]
+}
