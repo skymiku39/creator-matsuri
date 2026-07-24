@@ -15,28 +15,30 @@ export function EditorPage() {
   return (
     <ReactFlowProvider>
       <div className="app-shell">
-        <div className="top-bar">
-          <AppNav />
-          <div className="top-bar__actions">
-            <button type="button" onClick={() => setTemplatesOpen(true)}>
-              範本
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const n = autoCompleteEnds()
-                alert(
-                  n > 0
-                    ? `已自動補上 ${n} 個結束節點。`
-                    : '目前各分支都已有結束節點。',
-                )
-              }}
-            >
-              自動補全結束
-            </button>
+        <div className="app-header">
+          <div className="top-bar">
+            <AppNav />
+            <div className="top-bar__actions">
+              <button type="button" onClick={() => setTemplatesOpen(true)}>
+                範本
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const n = autoCompleteEnds()
+                  alert(
+                    n > 0
+                      ? `已自動補上 ${n} 個結束節點。`
+                      : '目前各分支都已有結束節點。',
+                  )
+                }}
+              >
+                自動補全結束
+              </button>
+            </div>
           </div>
+          <Toolbar />
         </div>
-        <Toolbar />
         <div className="workspace">
           <Toolbox />
           <FlowCanvas />

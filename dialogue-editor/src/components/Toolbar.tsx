@@ -115,31 +115,32 @@ export function Toolbar() {
       <div className="brand-block">
         <p className="brand">創作者的文化祭</p>
         <h1>攤位台詞流程編輯器</h1>
-        <p className="tagline">視覺化編輯 → 匯出 RPGMV／MZ 用語句表（CSV／XLSX）</p>
       </div>
 
       <div className="toolbar-controls">
-        <label className="field inline">
-          <span>攤位編號</span>
-          <input
-            value={meta.boothId}
-            onChange={(e) => {
-              setMeta({ boothId: e.target.value.replace(/[^\d]/g, '') })
-            }}
-            onBlur={() =>
-              setMeta({
-                boothId: normalizeBoothId(meta.boothId || '01'),
-              })
-            }
-          />
-        </label>
-        <label className="field inline">
-          <span>攤位名稱</span>
-          <input
-            value={meta.boothName}
-            onChange={(e) => setMeta({ boothName: e.target.value })}
-          />
-        </label>
+        <div className="toolbar-meta-row">
+          <label className="field inline">
+            <span>攤位編號</span>
+            <input
+              value={meta.boothId}
+              onChange={(e) => {
+                setMeta({ boothId: e.target.value.replace(/[^\d]/g, '') })
+              }}
+              onBlur={() =>
+                setMeta({
+                  boothId: normalizeBoothId(meta.boothId || '01'),
+                })
+              }
+            />
+          </label>
+          <label className="field inline">
+            <span>攤位名稱</span>
+            <input
+              value={meta.boothName}
+              onChange={(e) => setMeta({ boothName: e.target.value })}
+            />
+          </label>
+        </div>
 
         <div className="btn-row">
           <button
@@ -189,7 +190,7 @@ export function Toolbar() {
         </div>
 
         {issues.length > 0 && (
-          <ul className="issues">
+          <ul className="issues" title="驗證訊息（可捲動）">
             {issues.map((issue, i) => (
               <li key={i} className={issue.level}>
                 <button
