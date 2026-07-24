@@ -9,7 +9,8 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useDialogueStore } from '../store/useDialogueStore'
-import type { DialogueNodeKind } from '../domain/types'
+import { canConnectKinds } from '../domain/connectionRules'
+import { ConnectPicker } from './ConnectPicker'
 import {
   ChoiceMenuNode,
   ChoiceNode,
@@ -26,23 +27,15 @@ const nodeTypes: NodeTypes = {
   end: EndNode,
 }
 
-const ALLOWED: Record<DialogueNodeKind, DialogueNodeKind[]> = {
-  message: ['message', 'choiceMenu', 'url', 'end'],
-  choiceMenu: ['choice'],
-  choice: ['message', 'url', 'end'],
-  url: ['message', 'url', 'end'],
-  end: [],
-}
-
 export function FlowCanvas() {
   const nodes = useDialogueStore((s) => s.nodes)
   const edges = useDialogueStore((s) => s.edges)
   const onNodesChange = useDialogueStore((s) => s.onNodesChange)
   const onEdgesChange = useDialogueStore((s) => s.onEdgesChange)
   const onConnect = useDialogueStore((s) => s.onConnect)
+
   const onSelectionChange = useCallback(
     ({ nodes: selected }: { nodes: { id: string }[] }) => {
-      // 只同步 selectedId，不要重寫 nodes（否則會打斷拖曳／連線）
       const id = selected[0]?.id ?? null
       useDialogueStore.setState({ selectedId: id })
     },
@@ -51,7 +44,6 @@ export function FlowCanvas() {
 
   const isValidConnection = useCallback(
     (connection: Connection | { source: string | null; target: string | null }) => {
-      // 拖線過程中尚未碰到目標時 target 為 null，必須允許，否則「拉不出線」
       if (!connection.source) return false
       if (!connection.target) return true
 
@@ -59,9 +51,7 @@ export function FlowCanvas() {
       const target = nodes.find((n) => n.id === connection.target)
       if (!source || !target) return false
       if (source.id === target.id) return false
-      const sk = source.data.kind
-      const tk = target.data.kind
-      return ALLOWED[sk]?.includes(tk) ?? false
+      return canConnectKinds(source.data.kind, target.data.kind)
     },
     [nodes],
   )
@@ -110,6 +100,7 @@ export function FlowCanvas() {
           }}
         />
       </ReactFlow>
+      <ConnectPicker />
     </div>
   )
 }

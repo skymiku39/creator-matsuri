@@ -1,28 +1,17 @@
 import { useMemo, useRef } from 'react'
 import * as XLSX from 'xlsx'
-import {
-  csvRowsToString,
-  downloadText,
-  flowToCsvRows,
-} from '../domain/exportCsv'
+import { downloadText, flowToCsvRows } from '../domain/exportCsv'
 import { parseCsvText } from '../domain/importCsv'
+import {
+  buildExportCsv,
+  parseProjectJson,
+  serializeProject,
+} from '../domain/projectIo'
 import { validateFlow } from '../domain/validate'
 import { useDialogueStore } from '../store/useDialogueStore'
-import { normalizeBoothId, type DialogueProject } from '../domain/types'
+import { normalizeBoothId } from '../domain/types'
 import type { FlowNode } from '../domain/exportCsv'
 import type { Edge } from '@xyflow/react'
-
-function isDialogueProject(value: unknown): value is DialogueProject {
-  if (!value || typeof value !== 'object') return false
-  const v = value as DialogueProject
-  return (
-    v.version === 1 &&
-    v.meta != null &&
-    typeof v.meta === 'object' &&
-    Array.isArray(v.nodes) &&
-    Array.isArray(v.edges)
-  )
-}
 
 export function Toolbar() {
   const meta = useDialogueStore((s) => s.meta)
@@ -44,18 +33,9 @@ export function Toolbar() {
       return
     }
     const boothId = normalizeBoothId(meta.boothId)
-    const rows = flowToCsvRows({ ...meta, boothId }, nodes, edges)
-    const csv = csvRowsToString(rows, meta.locale, true, true)
-    const lines = csv.replace(/^\uFEFF/, '').trimEnd().split('\n')
-    const withBooth =
-      `\uFEFF${[
-        lines[0],
-        `,${escapeCsv(meta.boothName)},,`,
-        ...lines.slice(1),
-      ].join('\n')}\n`
     downloadText(
       `《創作者的文化祭》攤位${boothId}台詞.csv`,
-      withBooth,
+      buildExportCsv(meta, nodes, edges),
       'text/csv;charset=utf-8',
     )
   }
@@ -80,15 +60,9 @@ export function Toolbar() {
 
   const exportProject = () => {
     const boothId = normalizeBoothId(meta.boothId)
-    const project: DialogueProject = {
-      version: 1,
-      meta: { ...meta, boothId },
-      nodes,
-      edges,
-    }
     downloadText(
       `booth_${boothId}_flow.json`,
-      JSON.stringify(project, null, 2),
+      serializeProject(meta, nodes, edges),
       'application/json',
     )
   }
@@ -98,11 +72,7 @@ export function Toolbar() {
       const name = file.name.toLowerCase()
       if (name.endsWith('.json')) {
         const text = await file.text()
-        const project: unknown = JSON.parse(text)
-        if (!isDialogueProject(project)) {
-          alert('專案 JSON 格式不正確（需要 version、meta、nodes、edges）。')
-          return
-        }
+        const project = parseProjectJson(text)
         loadProject(
           project.meta,
           project.nodes as FlowNode[],
@@ -118,7 +88,9 @@ export function Toolbar() {
         const csv = XLSX.utils.sheet_to_csv(sheet)
         const parsed = parseCsvText(csv)
         if (parsed.skippedIds.length > 0) {
-          alert(`有 ${parsed.skippedIds.length} 列編號無法辨識，已略過：\n${parsed.skippedIds.slice(0, 8).join('\n')}`)
+          alert(
+            `有 ${parsed.skippedIds.length} 列編號無法辨識，已略過：\n${parsed.skippedIds.slice(0, 8).join('\n')}`,
+          )
         }
         loadFromParsed(parsed)
         return
@@ -127,7 +99,9 @@ export function Toolbar() {
       const text = await file.text()
       const parsed = parseCsvText(text)
       if (parsed.skippedIds.length > 0) {
-        alert(`有 ${parsed.skippedIds.length} 列編號無法辨識，已略過：\n${parsed.skippedIds.slice(0, 8).join('\n')}`)
+        alert(
+          `有 ${parsed.skippedIds.length} 列編號無法辨識，已略過：\n${parsed.skippedIds.slice(0, 8).join('\n')}`,
+        )
       }
       loadFromParsed(parsed)
     } catch (err) {
@@ -232,9 +206,4 @@ export function Toolbar() {
       </div>
     </header>
   )
-}
-
-function escapeCsv(value: string) {
-  if (/[",\n\r]/.test(value)) return `"${value.replace(/"/g, '""')}"`
-  return value
 }

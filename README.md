@@ -19,7 +19,7 @@ npm run dev
 
 ## 版本
 
-目前版本：`0.1.0`（見 `dialogue-editor/package.json`）
+目前版本：`0.1.1`（見 `dialogue-editor/package.json`）
 
 - `npm test` — 單元測試
 - `npm run build` — 正式建置（請在確認完成後再執行）

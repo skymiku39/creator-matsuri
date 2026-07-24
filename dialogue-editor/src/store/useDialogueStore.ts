@@ -16,7 +16,10 @@ import {
 } from '../domain/types'
 import type { FlowNode } from '../domain/exportCsv'
 import { rowsToFlow } from '../domain/rowsToFlow'
+import type { ConnectPickerState } from './connectPickerTypes'
+import { CONNECTION_ALLOWED } from '../domain/connectionRules'
 import type { ParsedTemplate } from '../domain/importCsv'
+
 
 /** 避免與 starter / 匯入產生的 id 撞名 */
 let idCounter = 1000
@@ -174,6 +177,7 @@ interface DialogueState {
   nodes: FlowNode[]
   edges: Edge[]
   selectedId: string | null
+  connectPicker: ConnectPickerState | null
   setMeta: (patch: Partial<BoothMeta>) => void
   onNodesChange: (changes: NodeChange<FlowNode>[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
@@ -185,6 +189,10 @@ interface DialogueState {
   loadFromParsed: (parsed: ParsedTemplate) => void
   loadProject: (meta: BoothMeta, nodes: FlowNode[], edges: Edge[]) => void
   resetStarter: () => void
+  openConnectPicker: (state: ConnectPickerState) => void
+  closeConnectPicker: () => void
+  connectFromPicker: (targetId: string) => void
+  createAndConnectFromPicker: (kind: DialogueNodeKind) => void
 }
 
 const initial = starterFlow()
@@ -195,6 +203,7 @@ export const useDialogueStore = create<DialogueState>((set, get) => ({
   nodes: initial.nodes,
   edges: initial.edges,
   selectedId: null,
+  connectPicker: null,
 
   setMeta: (patch) => {
     const current = get().meta
@@ -331,6 +340,7 @@ export const useDialogueStore = create<DialogueState>((set, get) => ({
       nodes,
       edges,
       selectedId: null,
+      connectPicker: null,
     })
   },
 
@@ -341,6 +351,7 @@ export const useDialogueStore = create<DialogueState>((set, get) => ({
       nodes,
       edges,
       selectedId: null,
+      connectPicker: null,
     })
   },
 
@@ -352,6 +363,91 @@ export const useDialogueStore = create<DialogueState>((set, get) => ({
       nodes: flow.nodes,
       edges: flow.edges,
       selectedId: null,
+      connectPicker: null,
+    })
+  },
+
+  openConnectPicker: (state) => set({ connectPicker: state }),
+
+  closeConnectPicker: () => set({ connectPicker: null }),
+
+  connectFromPicker: (targetId) => {
+    const picker = get().connectPicker
+    if (!picker) return
+    get().onConnect({
+      source: picker.sourceId,
+      target: targetId,
+      sourceHandle: picker.sourceHandle,
+      targetHandle: null,
+    })
+    set({ connectPicker: null })
+  },
+
+  createAndConnectFromPicker: (kind) => {
+    const picker = get().connectPicker
+    if (!picker) return
+    if (!CONNECTION_ALLOWED[picker.sourceKind].includes(kind)) return
+
+    const source = get().nodes.find((n) => n.id === picker.sourceId)
+    const defaults: Record<DialogueNodeKind, DialogueNodeData> = {
+      message: {
+        kind: 'message',
+        title: '新對話',
+        text: '「……」',
+        note: '',
+      },
+      choiceMenu: {
+        kind: 'choiceMenu',
+        title: '對話選項',
+        text: '',
+        note: '建議包含返回選項',
+      },
+      choice: {
+        kind: 'choice',
+        title: '新選項',
+        text: '選項文字',
+        note: '',
+        isReturn: false,
+      },
+      url: {
+        kind: 'url',
+        title: '超連結',
+        text: 'https://',
+        note: '此為超連結',
+      },
+      end: {
+        kind: 'end',
+        title: '結束／返回',
+        text: '',
+        note: '',
+      },
+    }
+
+    const id = nextId(kind)
+    const baseX = source?.position.x ?? 160
+    const baseY = source?.position.y ?? 80
+    const node: FlowNode = {
+      id,
+      type: kind,
+      position: {
+        x: baseX + (picker.sourceKind === 'choiceMenu' ? 280 : 0),
+        y: baseY + (picker.sourceKind === 'choiceMenu' ? 0 : 140),
+      },
+      data: defaults[kind],
+      selected: true,
+    }
+
+    set({
+      nodes: withExclusiveSelection([...get().nodes, node], id),
+      selectedId: id,
+      connectPicker: null,
+    })
+
+    get().onConnect({
+      source: picker.sourceId,
+      target: id,
+      sourceHandle: picker.sourceHandle,
+      targetHandle: null,
     })
   },
 }))
