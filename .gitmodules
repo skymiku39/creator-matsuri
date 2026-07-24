@@ -1,0 +1,3 @@
+[submodule "creator-matsuri-tools"]
+	path = creator-matsuri-tools
+	url = https://github.com/skymiku39/creator-matsuri-tools.git
