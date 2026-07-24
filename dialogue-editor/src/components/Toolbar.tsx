@@ -8,9 +8,21 @@ import {
 import { parseCsvText } from '../domain/importCsv'
 import { validateFlow } from '../domain/validate'
 import { useDialogueStore } from '../store/useDialogueStore'
-import type { DialogueProject } from '../domain/types'
+import { normalizeBoothId, type DialogueProject } from '../domain/types'
 import type { FlowNode } from '../domain/exportCsv'
 import type { Edge } from '@xyflow/react'
+
+function isDialogueProject(value: unknown): value is DialogueProject {
+  if (!value || typeof value !== 'object') return false
+  const v = value as DialogueProject
+  return (
+    v.version === 1 &&
+    v.meta != null &&
+    typeof v.meta === 'object' &&
+    Array.isArray(v.nodes) &&
+    Array.isArray(v.edges)
+  )
+}
 
 export function Toolbar() {
   const meta = useDialogueStore((s) => s.meta)
@@ -20,6 +32,7 @@ export function Toolbar() {
   const loadFromParsed = useDialogueStore((s) => s.loadFromParsed)
   const loadProject = useDialogueStore((s) => s.loadProject)
   const resetStarter = useDialogueStore((s) => s.resetStarter)
+  const select = useDialogueStore((s) => s.select)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const issues = useMemo(() => validateFlow(nodes, edges), [nodes, edges])
@@ -30,17 +43,18 @@ export function Toolbar() {
       alert(`尚有 ${errorCount} 個錯誤，請先修正再匯出。`)
       return
     }
-    const rows = flowToCsvRows(meta, nodes, edges)
-    const csv = csvRowsToString(rows, meta.locale)
-    // 在標題後插入攤位名列，貼近 Excel 範本
-    const lines = csv.trimEnd().split('\n')
-    const withBooth = [
-      lines[0],
-      `,${escapeCsv(meta.boothName)},,`,
-      ...lines.slice(1),
-    ].join('\n') + '\n'
+    const boothId = normalizeBoothId(meta.boothId)
+    const rows = flowToCsvRows({ ...meta, boothId }, nodes, edges)
+    const csv = csvRowsToString(rows, meta.locale, true, true)
+    const lines = csv.replace(/^\uFEFF/, '').trimEnd().split('\n')
+    const withBooth =
+      `\uFEFF${[
+        lines[0],
+        `,${escapeCsv(meta.boothName)},,`,
+        ...lines.slice(1),
+      ].join('\n')}\n`
     downloadText(
-      `P${meta.boothId}攤位_台詞.csv`,
+      `《創作者的文化祭》攤位${boothId}台詞.csv`,
       withBooth,
       'text/csv;charset=utf-8',
     )
@@ -51,7 +65,8 @@ export function Toolbar() {
       alert(`尚有 ${errorCount} 個錯誤，請先修正再匯出。`)
       return
     }
-    const rows = flowToCsvRows(meta, nodes, edges)
+    const boothId = normalizeBoothId(meta.boothId)
+    const rows = flowToCsvRows({ ...meta, boothId }, nodes, edges)
     const aoa: (string | number)[][] = [
       ['編號', '說明', meta.locale, '備註'],
       ['', meta.boothName, '', ''],
@@ -59,48 +74,66 @@ export function Toolbar() {
     ]
     const ws = XLSX.utils.aoa_to_sheet(aoa)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, `P${meta.boothId}攤位`)
-    XLSX.writeFile(wb, `《創作者的文化祭》攤位${meta.boothId}台詞.xlsx`)
+    XLSX.utils.book_append_sheet(wb, ws, `P${boothId}攤位`)
+    XLSX.writeFile(wb, `《創作者的文化祭》攤位${boothId}台詞.xlsx`)
   }
 
   const exportProject = () => {
+    const boothId = normalizeBoothId(meta.boothId)
     const project: DialogueProject = {
       version: 1,
-      meta,
+      meta: { ...meta, boothId },
       nodes,
       edges,
     }
     downloadText(
-      `booth_${meta.boothId}_flow.json`,
+      `booth_${boothId}_flow.json`,
       JSON.stringify(project, null, 2),
       'application/json',
     )
   }
 
   const onFile = async (file: File) => {
-    const name = file.name.toLowerCase()
-    if (name.endsWith('.json')) {
+    try {
+      const name = file.name.toLowerCase()
+      if (name.endsWith('.json')) {
+        const text = await file.text()
+        const project: unknown = JSON.parse(text)
+        if (!isDialogueProject(project)) {
+          alert('專案 JSON 格式不正確（需要 version、meta、nodes、edges）。')
+          return
+        }
+        loadProject(
+          project.meta,
+          project.nodes as FlowNode[],
+          project.edges as Edge[],
+        )
+        return
+      }
+
+      if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+        const buf = await file.arrayBuffer()
+        const wb = XLSX.read(buf)
+        const sheet = wb.Sheets[wb.SheetNames[0]]
+        const csv = XLSX.utils.sheet_to_csv(sheet)
+        const parsed = parseCsvText(csv)
+        if (parsed.skippedIds.length > 0) {
+          alert(`有 ${parsed.skippedIds.length} 列編號無法辨識，已略過：\n${parsed.skippedIds.slice(0, 8).join('\n')}`)
+        }
+        loadFromParsed(parsed)
+        return
+      }
+
       const text = await file.text()
-      const project = JSON.parse(text) as DialogueProject
-      loadProject(
-        project.meta,
-        project.nodes as FlowNode[],
-        project.edges as Edge[],
-      )
-      return
+      const parsed = parseCsvText(text)
+      if (parsed.skippedIds.length > 0) {
+        alert(`有 ${parsed.skippedIds.length} 列編號無法辨識，已略過：\n${parsed.skippedIds.slice(0, 8).join('\n')}`)
+      }
+      loadFromParsed(parsed)
+    } catch (err) {
+      console.error(err)
+      alert(`匯入失敗：${err instanceof Error ? err.message : String(err)}`)
     }
-
-    if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
-      const buf = await file.arrayBuffer()
-      const wb = XLSX.read(buf)
-      const sheet = wb.Sheets[wb.SheetNames[0]]
-      const csv = XLSX.utils.sheet_to_csv(sheet)
-      loadFromParsed(parseCsvText(csv))
-      return
-    }
-
-    const text = await file.text()
-    loadFromParsed(parseCsvText(text))
   }
 
   return (
@@ -117,12 +150,9 @@ export function Toolbar() {
           <input
             value={meta.boothId}
             onChange={(e) => {
-              const boothId = e.target.value.replace(/[^\d]/g, '') || '01'
-              setMeta({
-                boothId,
-                boothName: `${boothId}攤位`,
-              })
+              setMeta({ boothId: e.target.value.replace(/[^\d]/g, '') || '01' })
             }}
+            onBlur={() => setMeta({ boothId: normalizeBoothId(meta.boothId) })}
           />
         </label>
         <label className="field inline">
@@ -134,7 +164,18 @@ export function Toolbar() {
         </label>
 
         <div className="btn-row">
-          <button type="button" onClick={() => fileRef.current?.click()}>
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                nodes.length > 0 &&
+                !confirm('匯入會覆蓋目前畫布，確定繼續？')
+              ) {
+                return
+              }
+              fileRef.current?.click()
+            }}
+          >
             匯入
           </button>
           <input
@@ -157,16 +198,29 @@ export function Toolbar() {
           <button type="button" onClick={exportProject}>
             存專案 JSON
           </button>
-          <button type="button" onClick={resetStarter}>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm('確定重置為空白起步流程？未匯出內容將遺失。')) {
+                resetStarter()
+              }
+            }}
+          >
             重置
           </button>
         </div>
 
         {issues.length > 0 && (
           <ul className="issues">
-            {issues.slice(0, 4).map((issue, i) => (
+            {issues.map((issue, i) => (
               <li key={i} className={issue.level}>
-                {issue.level === 'error' ? '錯誤' : '注意'}：{issue.message}
+                <button
+                  type="button"
+                  className="issue-btn"
+                  onClick={() => issue.nodeId && select(issue.nodeId)}
+                >
+                  {issue.level === 'error' ? '錯誤' : '注意'}：{issue.message}
+                </button>
               </li>
             ))}
           </ul>

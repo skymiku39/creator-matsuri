@@ -42,15 +42,20 @@ export interface DialogueProject {
   edges: unknown[]
 }
 
-export const CHOICE_LETTERS = [
-  'A',
-  'B',
-  'C',
-  'D',
-  'E',
-  'F',
-  'G',
-  'H',
-] as const
+/** 對齊 RPGMV Show Choices 上限（最多 6） */
+export const CHOICE_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const
 
 export type ChoiceLetter = (typeof CHOICE_LETTERS)[number]
+
+/** 正規化攤位編號為至少兩位（1 → 01） */
+export function normalizeBoothId(raw: string): string {
+  const digits = String(raw ?? '').replace(/\D/g, '') || '1'
+  return digits.padStart(2, '0')
+}
+
+/** 判斷選項文案是否像「返回／離開」類（收斂關鍵字，避免誤判） */
+export function looksLikeReturnChoice(text: string, note = ''): boolean {
+  const t = text.trim()
+  if (note.includes('返回')) return true
+  return /等一下再過來|稍後再來|返回選單|^返回$|^離開$|^再見$/.test(t)
+}

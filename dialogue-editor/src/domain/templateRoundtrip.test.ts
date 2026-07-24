@@ -7,7 +7,7 @@ import { groupRows, parseCsvText } from './importCsv'
 import { rowsToFlow } from './rowsToFlow'
 
 describe('Excel 範本 roundtrip', () => {
-  it('匯入攤位01範本後可匯出相同編號與台詞', () => {
+  it('匯入攤位01範本後可匯出相同編號、台詞與備註', () => {
     const path = resolve(
       process.cwd(),
       '..',
@@ -41,8 +41,10 @@ describe('Excel 範本 roundtrip', () => {
     )
 
     expect(rows.map((r) => r.id)).toEqual(parsed.rows.map((r) => r.id))
-    expect(rows.map((r) => r.zh_TW.trim())).toEqual(
-      parsed.rows.map((r) => r.zh_TW.trim()),
+    expect(rows.map((r) => r.zh_TW)).toEqual(parsed.rows.map((r) => r.zh_TW))
+    expect(rows.map((r) => r.note)).toEqual(parsed.rows.map((r) => r.note))
+    expect(rows.map((r) => r.description)).toEqual(
+      parsed.rows.map((r) => r.description),
     )
   })
 })

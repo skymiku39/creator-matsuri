@@ -1,6 +1,7 @@
 import type { Edge, Node } from '@xyflow/react'
 import {
   CHOICE_LETTERS,
+  normalizeBoothId,
   type BoothMeta,
   type CsvRow,
   type DialogueNodeData,
@@ -29,10 +30,10 @@ function childrenOf(
     .filter((n): n is FlowNode => Boolean(n))
 }
 
-function findStartMessages(
+export function findStartMessages(
   nodes: FlowNode[],
   edges: FlowEdge[],
-): { messages: FlowNode[]; choiceMenu: FlowNode | null } {
+): { messages: FlowNode[]; choiceMenu: FlowNode | null; cycle: boolean } {
   const nodesById = new Map(nodes.map((n) => [n.id, n]))
   const targets = new Set(edges.map((e) => e.target))
   const roots = nodes.filter((n) => !targets.has(n.id))
@@ -44,13 +45,20 @@ function findStartMessages(
     null
 
   if (!start) {
-    return { messages: [], choiceMenu: null }
+    return { messages: [], choiceMenu: null, cycle: false }
   }
 
   const messages: FlowNode[] = []
+  const visited = new Set<string>()
   let cursor: FlowNode | null = start
+  let cycle = false
 
   while (cursor && dataOf(cursor).kind === 'message') {
+    if (visited.has(cursor.id)) {
+      cycle = true
+      break
+    }
+    visited.add(cursor.id)
     messages.push(cursor)
     const next: FlowNode | null =
       childrenOf(cursor.id, edges, nodesById)[0] ?? null
@@ -58,27 +66,41 @@ function findStartMessages(
   }
 
   const choiceMenu =
-    cursor && dataOf(cursor).kind === 'choiceMenu' ? cursor : null
+    !cycle && cursor && dataOf(cursor).kind === 'choiceMenu' ? cursor : null
 
-  return { messages, choiceMenu }
+  return { messages, choiceMenu, cycle }
 }
 
 function walkLinearBranch(
   start: FlowNode,
   edges: FlowEdge[],
   nodesById: Map<string, FlowNode>,
-): { messages: FlowNode[]; url: FlowNode | null; end: FlowNode | null } {
+): {
+  messages: FlowNode[]
+  url: FlowNode | null
+  end: FlowNode | null
+  cycle: boolean
+  visited: Set<string>
+} {
   const messages: FlowNode[] = []
+  const visited = new Set<string>()
   let url: FlowNode | null = null
   let end: FlowNode | null = null
   let cursor: FlowNode | null = start
+  let cycle = false
 
-  // choice 節點本身的 text 是選項名，不列入 Content
   if (dataOf(cursor).kind === 'choice') {
+    visited.add(cursor.id)
     cursor = childrenOf(cursor.id, edges, nodesById)[0] ?? null
   }
 
   while (cursor) {
+    if (visited.has(cursor.id)) {
+      cycle = true
+      break
+    }
+    visited.add(cursor.id)
+
     const kind = dataOf(cursor).kind
     if (kind === 'message') {
       messages.push(cursor)
@@ -94,11 +116,41 @@ function walkLinearBranch(
       end = cursor
       break
     }
-    // 回到選單或其他：停止
     break
   }
 
-  return { messages, url, end }
+  return { messages, url, end, cycle, visited }
+}
+
+/** 從開場主幹與各選項分支收集可匯出的節點 id */
+export function collectExportableIds(
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+): { ids: Set<string>; cycle: boolean } {
+  const nodesById = new Map(nodes.map((n) => [n.id, n]))
+  const ids = new Set<string>()
+  const { messages, choiceMenu, cycle: openCycle } = findStartMessages(
+    nodes,
+    edges,
+  )
+  let cycle = openCycle
+
+  for (const m of messages) ids.add(m.id)
+  if (!choiceMenu) return { ids, cycle }
+
+  ids.add(choiceMenu.id)
+  const choiceEdges = edges.filter((e) => e.source === choiceMenu.id)
+
+  for (const edge of choiceEdges) {
+    const choiceNode = nodesById.get(edge.target)
+    if (!choiceNode) continue
+    ids.add(choiceNode.id)
+    const branch = walkLinearBranch(choiceNode, edges, nodesById)
+    if (branch.cycle) cycle = true
+    for (const id of branch.visited) ids.add(id)
+  }
+
+  return { ids, cycle }
 }
 
 /** 將流程圖轉成範本用的 CSV 列（編號／說明／zh_TW／備註） */
@@ -107,7 +159,7 @@ export function flowToCsvRows(
   nodes: FlowNode[],
   edges: FlowEdge[],
 ): CsvRow[] {
-  const booth = meta.boothId.trim() || '01'
+  const booth = normalizeBoothId(meta.boothId)
   const nodesById = new Map(nodes.map((n) => [n.id, n]))
   const rows: CsvRow[] = []
 
@@ -142,7 +194,7 @@ export function flowToCsvRows(
     const choiceNode = nodesById.get(edge.target)
     if (!choiceNode || dataOf(choiceNode).kind !== 'choice') return
 
-    const fromHandle = edge.sourceHandle?.match(/^opt-([A-H])$/i)?.[1]
+    const fromHandle = edge.sourceHandle?.match(/^opt-([A-F])$/i)?.[1]
     const letter =
       (fromHandle?.toUpperCase() as (typeof CHOICE_LETTERS)[number] | undefined) ??
       CHOICE_LETTERS.find((l) => !usedLetters.has(l)) ??
@@ -155,7 +207,7 @@ export function flowToCsvRows(
       id: `${booth}_${letter}_Name`,
       description: `選項${letter}文字`,
       zh_TW: d.text,
-      note: d.note || (d.isReturn ? '返回選項' : ''),
+      note: d.note,
     })
 
     const branch = walkLinearBranch(choiceNode, edges, nodesById)
@@ -176,7 +228,7 @@ export function flowToCsvRows(
         id: `${booth}_${letter}_URL`,
         description: `選項${letter}連結`,
         zh_TW: ud.text,
-        note: ud.note || '此為超連結',
+        note: ud.note,
       })
     }
   })
@@ -188,6 +240,7 @@ export function csvRowsToString(
   rows: CsvRow[],
   locale = 'zh_TW',
   includeHeader = true,
+  withBom = false,
 ): string {
   const escape = (value: string) => {
     if (/[",\n\r]/.test(value)) {
@@ -205,7 +258,8 @@ export function csvRowsToString(
       [row.id, row.description, row.zh_TW, row.note].map(escape).join(','),
     )
   }
-  return lines.join('\n') + '\n'
+  const body = lines.join('\n') + '\n'
+  return withBom ? `\uFEFF${body}` : body
 }
 
 export function downloadText(filename: string, content: string, mime: string) {

@@ -1,6 +1,6 @@
 import type { Edge } from '@xyflow/react'
 import { groupRows, type ParsedTemplate } from './importCsv'
-import type { DialogueNodeData } from './types'
+import { looksLikeReturnChoice, type DialogueNodeData } from './types'
 import type { FlowNode } from './exportCsv'
 
 let seq = 0
@@ -26,17 +26,23 @@ export function rowsToFlow(parsed: ParsedTemplate): {
 
   for (const msg of messages) {
     const id = nid('msg')
-    nodes.push(makeNode(id, x0, y, {
-      kind: 'message',
-      title: msg.description,
-      text: msg.zh_TW,
-      note: msg.note,
-    }))
+    nodes.push(
+      makeNode(id, x0, y, {
+        kind: 'message',
+        title: msg.description,
+        text: msg.zh_TW,
+        note: msg.note,
+      }),
+    )
     if (prevId) {
       edges.push({ id: nid('e'), source: prevId, target: id })
     }
     prevId = id
     y += yStep
+  }
+
+  if (branches.length === 0) {
+    return { nodes, edges }
   }
 
   const menuId = nid('menu')
@@ -57,9 +63,7 @@ export function rowsToFlow(parsed: ParsedTemplate): {
     let by = 40
     const choiceId = nid('choice')
     const nameText = branch.name?.zh_TW ?? `選項${branch.letter}`
-    const isReturn =
-      /返回|再說|等一下|離開|再見/.test(nameText) ||
-      Boolean(branch.name?.note.includes('返回'))
+    const isReturn = looksLikeReturnChoice(nameText, branch.name?.note ?? '')
 
     nodes.push(
       makeNode(choiceId, bx, by, {
@@ -102,7 +106,7 @@ export function rowsToFlow(parsed: ParsedTemplate): {
           kind: 'url',
           title: branch.url.description,
           text: branch.url.zh_TW,
-          note: branch.url.note || '此為超連結',
+          note: branch.url.note,
         }),
       )
       edges.push({ id: nid('e'), source: last, target: id })
@@ -111,14 +115,13 @@ export function rowsToFlow(parsed: ParsedTemplate): {
     }
 
     if (isReturn) {
-      // 視覺上標示結束／返回：連回選單用虛線語意，匯出時不產生列
       const endId = nid('end')
       nodes.push(
         makeNode(endId, bx, by, {
           kind: 'end',
           title: '結束／返回',
           text: '',
-          note: isReturn ? '返回選單或結束對話' : '',
+          note: '',
         }),
       )
       edges.push({ id: nid('e'), source: last, target: endId })

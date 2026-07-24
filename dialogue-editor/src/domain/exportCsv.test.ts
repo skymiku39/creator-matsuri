@@ -3,8 +3,10 @@ import { csvRowsToString, flowToCsvRows } from './exportCsv'
 import { groupRows, parseCsvText } from './importCsv'
 import { rowsToFlow } from './rowsToFlow'
 import { validateFlow } from './validate'
+import { normalizeBoothId } from './types'
 import type { FlowNode } from './exportCsv'
 import type { Edge } from '@xyflow/react'
+import { nextId, syncIdCounterFromGraph } from '../store/useDialogueStore'
 
 const meta = { boothId: '01', boothName: '01攤位', locale: 'zh_TW' }
 
@@ -127,21 +129,56 @@ describe('flowToCsvRows', () => {
       '01_E_Name',
       '01_E_Content01',
     ])
-    // 選項字母以 sourceHandle（opt-A / opt-E）為準，而非順序索引
     expect(rows[0].zh_TW).toBe('「你好啊~」')
     expect(rows.find((r) => r.id === '01_A_URL')?.note).toBe('此為超連結')
+    expect(rows.find((r) => r.id === '01_E_Name')?.note).toBe('')
   })
 
-  it('可序列化為 CSV 字串', () => {
+  it('攤位編號會補零', () => {
     const { nodes, edges } = sampleFlow()
-    const csv = csvRowsToString(flowToCsvRows(meta, nodes, edges))
+    const rows = flowToCsvRows(
+      { ...meta, boothId: '1' },
+      nodes,
+      edges,
+    )
+    expect(rows[0].id).toBe('01_Msg01')
+  })
+
+  it('可序列化為含 BOM 的 CSV', () => {
+    const { nodes, edges } = sampleFlow()
+    const csv = csvRowsToString(flowToCsvRows(meta, nodes, edges), 'zh_TW', true, true)
+    expect(csv.startsWith('\uFEFF')).toBe(true)
     expect(csv).toContain('編號,說明,zh_TW,備註')
-    expect(csv).toContain('01_Msg01')
+  })
+
+  it('成環時不會無限迴圈', () => {
+    const nodes: FlowNode[] = [
+      {
+        id: 'a',
+        type: 'message',
+        position: { x: 0, y: 0 },
+        data: { kind: 'message', title: 'A', text: 'a', note: '' },
+      },
+      {
+        id: 'b',
+        type: 'message',
+        position: { x: 0, y: 0 },
+        data: { kind: 'message', title: 'B', text: 'b', note: '' },
+      },
+    ]
+    const edges: Edge[] = [
+      { id: 'e1', source: 'a', target: 'b' },
+      { id: 'e2', source: 'b', target: 'a' },
+    ]
+    const rows = flowToCsvRows(meta, nodes, edges)
+    expect(rows.length).toBeLessThanOrEqual(2)
+    const issues = validateFlow(nodes, edges)
+    expect(issues.some((i) => i.message.includes('循環'))).toBe(true)
   })
 })
 
 describe('parseCsvText + roundtrip', () => {
-  it('解析 CSV 並重建流程後可再匯出相同編號序列', () => {
+  it('解析 CSV 並重建流程後可再匯出相同欄位', () => {
     const { nodes, edges } = sampleFlow()
     const csv = csvRowsToString(flowToCsvRows(meta, nodes, edges))
     const parsed = parseCsvText(csv)
@@ -152,12 +189,17 @@ describe('parseCsvText + roundtrip', () => {
 
     const flow = rowsToFlow(parsed)
     const again = flowToCsvRows(
-      { boothId: parsed.boothId, boothName: parsed.boothName, locale: parsed.locale },
+      {
+        boothId: parsed.boothId,
+        boothName: parsed.boothName,
+        locale: parsed.locale,
+      },
       flow.nodes,
       flow.edges,
     )
     expect(again.map((r) => r.id)).toEqual(parsed.rows.map((r) => r.id))
     expect(again.map((r) => r.zh_TW)).toEqual(parsed.rows.map((r) => r.zh_TW))
+    expect(again.map((r) => r.note)).toEqual(parsed.rows.map((r) => r.note))
   })
 
   it('正確處理含逗號與換行的欄位', () => {
@@ -168,6 +210,36 @@ describe('parseCsvText + roundtrip', () => {
     const parsed = parseCsvText(text)
     expect(parsed.rows[0].zh_TW).toBe('「你好, 世界」')
     expect(parsed.rows[0].note).toContain('第二行')
+  })
+
+  it('可解析帶 BOM 的 CSV', () => {
+    const text = `\uFEFF編號,說明,zh_TW,備註
+01_Msg01,對話01,你好,
+`
+    const parsed = parseCsvText(text)
+    expect(parsed.rows).toHaveLength(1)
+    expect(parsed.rows[0].id).toBe('01_Msg01')
+  })
+
+  it('僅訊息的 CSV 不會產生空選單', () => {
+    const text = `編號,說明,zh_TW,備註
+01_Msg01,對話01,你好,
+`
+    const flow = rowsToFlow(parseCsvText(text))
+    expect(flow.nodes.some((n) => n.data.kind === 'choiceMenu')).toBe(false)
+    const issues = validateFlow(flow.nodes, flow.edges)
+    expect(issues.some((i) => i.message.includes('尚未連接任何選項'))).toBe(
+      false,
+    )
+  })
+
+  it('回報無法辨識的編號', () => {
+    const text = `編號,說明,zh_TW,備註
+01_Msg01,對話01,你好,
+01_A_Nam,錯字,x,
+`
+    const parsed = parseCsvText(text)
+    expect(parsed.skippedIds).toContain('01_A_Nam')
   })
 })
 
@@ -192,10 +264,41 @@ describe('validateFlow', () => {
         },
       },
     ]
-    const edges: Edge[] = [
-      { id: 'e', source: 'menu', target: 'cA' },
-    ]
+    const edges: Edge[] = [{ id: 'e', source: 'menu', target: 'cA' }]
     const issues = validateFlow(nodes, edges)
     expect(issues.some((i) => i.message.includes('返回'))).toBe(true)
+  })
+
+  it('未連上主幹的節點為錯誤', () => {
+    const { nodes, edges } = sampleFlow()
+    const orphan: FlowNode = {
+      id: 'orphan',
+      type: 'message',
+      position: { x: 0, y: 0 },
+      data: { kind: 'message', title: '孤立', text: '不會匯出', note: '' },
+    }
+    const issues = validateFlow([...nodes, orphan], edges)
+    expect(issues.some((i) => i.message.includes('未連上主幹'))).toBe(true)
+  })
+})
+
+describe('normalizeBoothId / nextId', () => {
+  it('補零攤位編號', () => {
+    expect(normalizeBoothId('1')).toBe('01')
+    expect(normalizeBoothId('01')).toBe('01')
+  })
+
+  it('sync 後 nextId 不會與既有邊撞名', () => {
+    const edges: Edge[] = [
+      { id: 'e_1', source: 'a', target: 'b' },
+      { id: 'e_2', source: 'b', target: 'c' },
+      { id: 'e_3', source: 'c', target: 'd' },
+    ]
+    syncIdCounterFromGraph([], edges)
+    const id = nextId('e')
+    expect(id).not.toBe('e_1')
+    expect(id).not.toBe('e_2')
+    expect(id).not.toBe('e_3')
+    expect(Number(id.split('_')[1])).toBeGreaterThan(3)
   })
 })

@@ -17,7 +17,7 @@ export function Toolbox() {
   return (
     <aside className="panel toolbox">
       <h2>節點</h2>
-      <p className="panel-lead">拖放前先點選加入，再連線組成流程。</p>
+      <p className="panel-lead">點選加入節點，再在畫布上連線組成流程。</p>
       <div className="tool-grid">
         {TOOLS.map((t) => (
           <button

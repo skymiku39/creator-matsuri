@@ -8,15 +8,34 @@ import {
   type EdgeChange,
   type NodeChange,
 } from '@xyflow/react'
-import type { BoothMeta, DialogueNodeData, DialogueNodeKind } from '../domain/types'
+import {
+  normalizeBoothId,
+  type BoothMeta,
+  type DialogueNodeData,
+  type DialogueNodeKind,
+} from '../domain/types'
 import type { FlowNode } from '../domain/exportCsv'
 import { rowsToFlow } from '../domain/rowsToFlow'
 import type { ParsedTemplate } from '../domain/importCsv'
 
-let idCounter = 1
+/** 避免與 starter / 匯入產生的 id 撞名 */
+let idCounter = 1000
+
 export function nextId(prefix: string) {
   idCounter += 1
   return `${prefix}_${idCounter}`
+}
+
+/** 依現有圖上的數字後綴抬高 counter，避免載入後撞名 */
+export function syncIdCounterFromGraph(nodes: FlowNode[], edges: Edge[]) {
+  let max = idCounter
+  const consider = (id: string) => {
+    const m = id.match(/_(\d+)$/)
+    if (m) max = Math.max(max, Number(m[1]))
+  }
+  for (const n of nodes) consider(n.id)
+  for (const e of edges) consider(e.id)
+  idCounter = max
 }
 
 const defaultMeta: BoothMeta = {
@@ -100,6 +119,7 @@ interface DialogueState {
 }
 
 const initial = starterFlow()
+syncIdCounterFromGraph(initial.nodes, initial.edges)
 
 export const useDialogueStore = create<DialogueState>((set, get) => ({
   meta: defaultMeta,
@@ -107,10 +127,26 @@ export const useDialogueStore = create<DialogueState>((set, get) => ({
   edges: initial.edges,
   selectedId: null,
 
-  setMeta: (patch) => set({ meta: { ...get().meta, ...patch } }),
+  setMeta: (patch) => {
+    const current = get().meta
+    const next = { ...current, ...patch }
+    if (patch.boothId != null) {
+      next.boothId = normalizeBoothId(patch.boothId)
+      const autoName = `${normalizeBoothId(current.boothId)}攤位`
+      if (!patch.boothName && current.boothName === autoName) {
+        next.boothName = `${next.boothId}攤位`
+      }
+    }
+    set({ meta: next })
+  },
 
-  onNodesChange: (changes) =>
-    set({ nodes: applyNodeChanges(changes, get().nodes) as FlowNode[] }),
+  onNodesChange: (changes) => {
+    const nodes = applyNodeChanges(changes, get().nodes) as FlowNode[]
+    const selectedId = get().selectedId
+    const stillThere =
+      selectedId && nodes.some((n) => n.id === selectedId) ? selectedId : null
+    set({ nodes, selectedId: stillThere })
+  },
 
   onEdgesChange: (changes) =>
     set({ edges: applyEdgeChanges(changes, get().edges) }),
@@ -118,7 +154,11 @@ export const useDialogueStore = create<DialogueState>((set, get) => ({
   onConnect: (connection) =>
     set({ edges: addEdge({ ...connection, id: nextId('e') }, get().edges) }),
 
-  select: (id) => set({ selectedId: id }),
+  select: (id) =>
+    set({
+      selectedId: id,
+      nodes: get().nodes.map((n) => ({ ...n, selected: Boolean(id) && n.id === id })),
+    }),
 
   updateNodeData: (id, patch) =>
     set({
@@ -186,9 +226,10 @@ export const useDialogueStore = create<DialogueState>((set, get) => ({
 
   loadFromParsed: (parsed) => {
     const { nodes, edges } = rowsToFlow(parsed)
+    syncIdCounterFromGraph(nodes, edges)
     set({
       meta: {
-        boothId: parsed.boothId,
+        boothId: normalizeBoothId(parsed.boothId),
         boothName: parsed.boothName,
         locale: parsed.locale,
       },
@@ -198,11 +239,19 @@ export const useDialogueStore = create<DialogueState>((set, get) => ({
     })
   },
 
-  loadProject: (meta, nodes, edges) =>
-    set({ meta, nodes, edges, selectedId: null }),
+  loadProject: (meta, nodes, edges) => {
+    syncIdCounterFromGraph(nodes, edges)
+    set({
+      meta: { ...meta, boothId: normalizeBoothId(meta.boothId) },
+      nodes,
+      edges,
+      selectedId: null,
+    })
+  },
 
   resetStarter: () => {
     const flow = starterFlow()
+    syncIdCounterFromGraph(flow.nodes, flow.edges)
     set({
       meta: defaultMeta,
       nodes: flow.nodes,

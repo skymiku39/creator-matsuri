@@ -4,10 +4,12 @@ import {
   Controls,
   MiniMap,
   ReactFlow,
+  type Connection,
   type NodeTypes,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useDialogueStore } from '../store/useDialogueStore'
+import type { DialogueNodeKind } from '../domain/types'
 import {
   ChoiceMenuNode,
   ChoiceNode,
@@ -22,6 +24,14 @@ const nodeTypes: NodeTypes = {
   choice: ChoiceNode,
   url: UrlNode,
   end: EndNode,
+}
+
+const ALLOWED: Record<DialogueNodeKind, DialogueNodeKind[]> = {
+  message: ['message', 'choiceMenu', 'url', 'end'],
+  choiceMenu: ['choice'],
+  choice: ['message', 'url', 'end'],
+  url: ['message', 'url', 'end'],
+  end: [],
 }
 
 export function FlowCanvas() {
@@ -39,6 +49,18 @@ export function FlowCanvas() {
     [select],
   )
 
+  const isValidConnection = useCallback(
+    (connection: Connection | { source: string | null; target: string | null }) => {
+      const source = nodes.find((n) => n.id === connection.source)
+      const target = nodes.find((n) => n.id === connection.target)
+      if (!source || !target) return false
+      const sk = source.data.kind
+      const tk = target.data.kind
+      return ALLOWED[sk]?.includes(tk) ?? false
+    },
+    [nodes],
+  )
+
   const proOptions = useMemo(() => ({ hideAttribution: true }), [])
 
   return (
@@ -50,6 +72,7 @@ export function FlowCanvas() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onSelectionChange={onSelectionChange}
+        isValidConnection={isValidConnection}
         nodeTypes={nodeTypes}
         fitView
         proOptions={proOptions}

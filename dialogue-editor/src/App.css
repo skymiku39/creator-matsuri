@@ -124,6 +124,13 @@
   color: var(--accent-deep);
 }
 
+.issue-btn {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 200px 1fr 280px;

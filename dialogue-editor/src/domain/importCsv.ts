@@ -1,30 +1,42 @@
-import type { CsvRow } from './types'
-import { CHOICE_LETTERS } from './types'
+import {
+  CHOICE_LETTERS,
+  normalizeBoothId,
+  type CsvRow,
+} from './types'
 
 export interface ParsedTemplate {
   boothId: string
   boothName: string
   locale: string
   rows: CsvRow[]
+  skippedIds: string[]
 }
 
 /** 解析範本 CSV（欄位：編號,說明,zh_TW,備註） */
 export function parseCsvText(text: string): ParsedTemplate {
-  const lines = splitCsv(text)
+  const cleaned = text.replace(/^\uFEFF/, '')
+  const lines = splitCsv(cleaned)
   if (lines.length === 0) {
-    return { boothId: '01', boothName: '01攤位', locale: 'zh_TW', rows: [] }
+    return {
+      boothId: '01',
+      boothName: '01攤位',
+      locale: 'zh_TW',
+      rows: [],
+      skippedIds: [],
+    }
   }
 
   let start = 0
   let locale = 'zh_TW'
-  const header = lines[0]
-  if (header[0] === '編號' || header[0]?.toLowerCase() === 'id') {
+  const header = lines[0].map((c) => c.replace(/^\uFEFF/, '').trim())
+  const header0 = header[0]?.toLowerCase()
+  if (header[0] === '編號' || header0 === 'id') {
     locale = header[2] || 'zh_TW'
     start = 1
   }
 
   const rows: CsvRow[] = []
-  let boothName = '01攤位'
+  let boothName = ''
   let boothId = '01'
 
   for (let i = start; i < lines.length; i++) {
@@ -35,7 +47,7 @@ export function parseCsvText(text: string): ParsedTemplate {
     if (!cols[0]?.trim() && cols[1]?.trim()) {
       boothName = cols[1].trim()
       const m = boothName.match(/^(\d+)/)
-      if (m) boothId = m[1]
+      if (m) boothId = normalizeBoothId(m[1])
       continue
     }
 
@@ -43,7 +55,7 @@ export function parseCsvText(text: string): ParsedTemplate {
 
     const id = cols[0].trim()
     const idMatch = id.match(/^(\d+)_/)
-    if (idMatch) boothId = idMatch[1]
+    if (idMatch) boothId = normalizeBoothId(idMatch[1])
 
     rows.push({
       id,
@@ -53,11 +65,27 @@ export function parseCsvText(text: string): ParsedTemplate {
     })
   }
 
-  if (!boothName || boothName === '01攤位') {
+  boothId = normalizeBoothId(boothId)
+  if (!boothName) {
     boothName = `${boothId}攤位`
   }
 
-  return { boothId, boothName, locale, rows }
+  const { messages, branches, skippedIds } = groupRows(rows)
+
+  return {
+    boothId,
+    boothName,
+    locale,
+    rows: [
+      ...messages,
+      ...branches.flatMap((b) => [
+        ...(b.name ? [b.name] : []),
+        ...b.contents,
+        ...(b.url ? [b.url] : []),
+      ]),
+    ],
+    skippedIds,
+  }
 }
 
 function splitCsv(text: string): string[][] {
@@ -121,9 +149,11 @@ export interface BranchGroup {
 export function groupRows(rows: CsvRow[]): {
   messages: CsvRow[]
   branches: BranchGroup[]
+  skippedIds: string[]
 } {
   const messages: CsvRow[] = []
   const branchMap = new Map<string, BranchGroup>()
+  const skippedIds: string[] = []
 
   for (const row of rows) {
     const msg = row.id.match(/^\d+_Msg(\d+)$/i)
@@ -132,7 +162,7 @@ export function groupRows(rows: CsvRow[]): {
       continue
     }
 
-    const name = row.id.match(/^\d+_([A-H])_Name$/i)
+    const name = row.id.match(/^\d+_([A-F])_Name$/i)
     if (name) {
       const letter = name[1].toUpperCase()
       const g = branchMap.get(letter) ?? { letter, contents: [] }
@@ -141,7 +171,7 @@ export function groupRows(rows: CsvRow[]): {
       continue
     }
 
-    const content = row.id.match(/^\d+_([A-H])_Content(\d+)$/i)
+    const content = row.id.match(/^\d+_([A-F])_Content(\d+)$/i)
     if (content) {
       const letter = content[1].toUpperCase()
       const g = branchMap.get(letter) ?? { letter, contents: [] }
@@ -150,13 +180,16 @@ export function groupRows(rows: CsvRow[]): {
       continue
     }
 
-    const url = row.id.match(/^\d+_([A-H])_URL$/i)
+    const url = row.id.match(/^\d+_([A-F])_URL$/i)
     if (url) {
       const letter = url[1].toUpperCase()
       const g = branchMap.get(letter) ?? { letter, contents: [] }
       g.url = row
       branchMap.set(letter, g)
+      continue
     }
+
+    skippedIds.push(row.id)
   }
 
   messages.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
@@ -170,5 +203,5 @@ export function groupRows(rows: CsvRow[]): {
     (g): g is BranchGroup => Boolean(g),
   )
 
-  return { messages, branches }
+  return { messages, branches, skippedIds }
 }
