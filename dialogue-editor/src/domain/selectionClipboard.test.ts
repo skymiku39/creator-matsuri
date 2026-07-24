@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Edge } from '@xyflow/react'
-import { expandLinearSegment } from './linearSegment'
+import { expandLinearSegment, shortestNodePath } from './linearSegment'
 import {
   captureSelection,
   pasteSelectionDuplicate,
@@ -64,6 +64,23 @@ function sample(): { nodes: FlowNode[]; edges: Edge[] } {
   ]
   return { nodes, edges }
 }
+
+describe('shortestNodePath', () => {
+  it('選取兩點間最短路徑，不含其他分支', () => {
+    const { edges } = sample()
+    expect(shortestNodePath('cA', 'a1', edges)).toEqual(['cA', 'a1'])
+    expect(shortestNodePath('m1', 'm2', edges)).toEqual(['m1', 'm2'])
+    // 跨選單到選項：m2-menu-cA，不會吃到 cB / b1
+    expect(shortestNodePath('m2', 'cA', edges)).toEqual(['m2', 'menu', 'cA'])
+    expect(shortestNodePath('cA', 'cB', edges)).toEqual(['cA', 'menu', 'cB'])
+  })
+
+  it('不相連回傳 null', () => {
+    expect(
+      shortestNodePath('a', 'b', [{ id: 'e', source: 'x', target: 'y' }]),
+    ).toBeNull()
+  })
+})
 
 describe('expandLinearSegment', () => {
   it('開場停在選單前', () => {

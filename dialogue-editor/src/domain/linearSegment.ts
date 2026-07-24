@@ -18,9 +18,53 @@ export function outgoingEdges(nodeId: string, edges: Edge[]): Edge[] {
 }
 
 /**
+ * 兩點之間的最短路徑（邊視為無向）。
+ * 找不到連通時回傳 null。
+ */
+export function shortestNodePath(
+  fromId: string,
+  toId: string,
+  edges: Edge[],
+): string[] | null {
+  if (fromId === toId) return [fromId]
+
+  const adj = new Map<string, string[]>()
+  const link = (a: string, b: string) => {
+    const list = adj.get(a)
+    if (list) list.push(b)
+    else adj.set(a, [b])
+  }
+  for (const e of edges) {
+    link(e.source, e.target)
+    link(e.target, e.source)
+  }
+
+  const prev = new Map<string, string | null>([[fromId, null]])
+  const queue = [fromId]
+  while (queue.length > 0) {
+    const cur = queue.shift()!
+    for (const next of adj.get(cur) ?? []) {
+      if (prev.has(next)) continue
+      prev.set(next, cur)
+      if (next === toId) {
+        const path: string[] = []
+        let walk: string | null = toId
+        while (walk) {
+          path.push(walk)
+          walk = prev.get(walk) ?? null
+        }
+        path.reverse()
+        return path
+      }
+      queue.push(next)
+    }
+  }
+  return null
+}
+
+/**
  * 以 nodeId 為中心，沿「唯一前驅／唯一後繼」擴展最大線性片段。
- * 碰到選單多出口或分叉／匯合即停；選單本身可作為錨點被納入。
- * 回傳由頭到尾的節點 id。
+ * （保留供驗證／其他用途；Shift 選取改用 shortestNodePath）
  */
 export function expandLinearSegment(
   nodeId: string,

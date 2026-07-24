@@ -35,9 +35,11 @@ export function FlowCanvas() {
   const onNodesChange = useDialogueStore((s) => s.onNodesChange)
   const onEdgesChange = useDialogueStore((s) => s.onEdgesChange)
   const onConnect = useDialogueStore((s) => s.onConnect)
-  const selectLinearSegment = useDialogueStore((s) => s.selectLinearSegment)
+  const selectShiftRange = useDialogueStore((s) => s.selectShiftRange)
+  const clearShiftAnchor = useDialogueStore((s) => s.clearShiftAnchor)
   const copySelection = useDialogueStore((s) => s.copySelection)
   const pasteClipboard = useDialogueStore((s) => s.pasteClipboard)
+  const shiftAnchorId = useDialogueStore((s) => s.shiftAnchorId)
 
   const onSelectionChange = useCallback(
     ({ nodes: selected }: { nodes: { id: string }[] }) => {
@@ -49,15 +51,21 @@ export function FlowCanvas() {
 
   const onNodeClick = useCallback(
     (event: MouseEvent, node: Node) => {
-      // Ctrl／Cmd：交給 React Flow 做多選切換；Shift：選取線性片段
+      // Ctrl／Cmd：交給 React Flow 多選；Shift：兩點最短路徑
       if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
         event.preventDefault()
         event.stopPropagation()
-        selectLinearSegment(node.id)
+        selectShiftRange(node.id)
+        return
       }
+      clearShiftAnchor()
     },
-    [selectLinearSegment],
+    [selectShiftRange, clearShiftAnchor],
   )
+
+  const onPaneClick = useCallback(() => {
+    clearShiftAnchor()
+  }, [clearShiftAnchor])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -108,7 +116,9 @@ export function FlowCanvas() {
     <div className="canvas-wrap">
       <div className="canvas-hint" role="note">
         <kbd>Ctrl</kbd> 多選　
-        <kbd>Shift</kbd> 選線性片段　拖曳移動　
+        <kbd>Shift</kbd> 點兩下選最短路徑
+        {shiftAnchorId ? '（已有起點，再點終點）' : ''}
+        　拖曳移動　
         <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 複製貼上
         {clipboard ? `　（已複製 ${clipboard.nodes.length} 個）` : ''}
         {selectedCount > 1 ? `　已選 ${selectedCount}` : ''}
@@ -121,6 +131,7 @@ export function FlowCanvas() {
         onConnect={onConnect}
         onSelectionChange={onSelectionChange}
         onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
         isValidConnection={isValidConnection}
         nodeTypes={nodeTypes}
         fitView

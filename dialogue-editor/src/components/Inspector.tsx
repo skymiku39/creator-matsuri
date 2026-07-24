@@ -53,7 +53,7 @@ export function Inspector() {
         <p className="panel-lead">選取畫布上的節點以編輯台詞與備註。</p>
         <p className="panel-hint">
           <kbd>Ctrl</kbd> 多選　
-          <kbd>Shift</kbd> 選線性片段　
+          <kbd>Shift</kbd> 兩點最短路徑　
           <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 複製
         </p>
       </aside>
@@ -192,7 +192,7 @@ export function Inspector() {
 
       <p className="panel-hint">
         <kbd>Ctrl</kbd> 多選　
-        <kbd>Shift</kbd> 片段　拖曳移動
+        <kbd>Shift</kbd> 兩點路徑　拖曳移動
       </p>
     </aside>
   )

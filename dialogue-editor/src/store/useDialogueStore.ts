@@ -26,8 +26,8 @@ import {
   pasteSelectionDuplicate,
   type SelectionClipboard,
 } from '../domain/selectionClipboard'
-import { expandLinearSegment } from '../domain/linearSegment'
 import { setIncomingLink, setOutgoingLink } from '../domain/linkEdit'
+import { shortestNodePath } from '../domain/linearSegment'
 
 export { nextId, syncIdCounterFromGraph } from './idFactory'
 
@@ -210,6 +210,8 @@ interface DialogueState {
   nodes: FlowNode[]
   edges: Edge[]
   selectedId: string | null
+  /** Shift 範圍選取的第一個方塊 */
+  shiftAnchorId: string | null
   /** Ctrl+C 暫存；不寫入 localStorage */
   clipboard: SelectionClipboard | null
   connectPicker: ConnectPickerState | null
@@ -218,8 +220,11 @@ interface DialogueState {
   onEdgesChange: (changes: EdgeChange[]) => void
   onConnect: (connection: Connection) => void
   select: (id: string | null) => void
-  /** Shift：選取該點所在的最大線性片段 */
-  selectLinearSegment: (nodeId: string) => void
+  clearShiftAnchor: () => void
+  /**
+   * Shift：第一次點＝起點；第二次點＝終點，選取兩點最短路徑上的節點。
+   */
+  selectShiftRange: (nodeId: string) => void
   updateNodeData: (id: string, patch: Partial<DialogueNodeData>) => void
   addNode: (kind: DialogueNodeKind) => void
   removeSelected: () => void
@@ -251,6 +256,7 @@ export const useDialogueStore = create<DialogueState>()(
       nodes: initial.nodes,
       edges: initial.edges,
       selectedId: null,
+      shiftAnchorId: null,
       clipboard: null,
       connectPicker: null,
 
@@ -302,16 +308,38 @@ export const useDialogueStore = create<DialogueState>()(
       select: (id) =>
         set({
           selectedId: id,
+          shiftAnchorId: null,
           nodes: withSelection(get().nodes, id),
         }),
 
-      selectLinearSegment: (nodeId) => {
-        const { nodes, edges } = get()
-        const ids = expandLinearSegment(nodeId, nodes, edges)
-        const setIds = new Set(ids.length > 0 ? ids : [nodeId])
+      clearShiftAnchor: () => set({ shiftAnchorId: null }),
+
+      selectShiftRange: (nodeId) => {
+        const { nodes, edges, shiftAnchorId } = get()
+        if (!shiftAnchorId || shiftAnchorId === nodeId) {
+          set({
+            shiftAnchorId: nodeId,
+            selectedId: nodeId,
+            nodes: withSelection(nodes, nodeId),
+          })
+          return
+        }
+
+        const path = shortestNodePath(shiftAnchorId, nodeId, edges)
+        if (!path) {
+          // 不相連：改以新點作為起點
+          set({
+            shiftAnchorId: nodeId,
+            selectedId: nodeId,
+            nodes: withSelection(nodes, nodeId),
+          })
+          return
+        }
+
         set({
           selectedId: nodeId,
-          nodes: withSelection(nodes, setIds),
+          nodes: withSelection(nodes, new Set(path)),
+          // 起點固定，方便再 Shift 點第三點時仍相對第一點算最短路
         })
       },
 
@@ -372,6 +400,7 @@ export const useDialogueStore = create<DialogueState>()(
           selectedId: null,
           connectPicker: null,
           clipboard: null,
+          shiftAnchorId: null,
         })
       },
 
@@ -385,6 +414,7 @@ export const useDialogueStore = create<DialogueState>()(
           selectedId: null,
           connectPicker: null,
           clipboard: null,
+          shiftAnchorId: null,
         })
       },
 
@@ -458,6 +488,7 @@ export const useDialogueStore = create<DialogueState>()(
           selectedId: null,
           connectPicker: null,
           clipboard: null,
+          shiftAnchorId: null,
         })
         return true
       },
