@@ -9,6 +9,8 @@ import {
 } from '../domain/simulate'
 import { useDialogueStore } from '../store/useDialogueStore'
 
+type Session = 'idle' | 'active' | 'ended'
+
 export function SimulatePage() {
   const meta = useDialogueStore((s) => s.meta)
   const nodes = useDialogueStore((s) => s.nodes)
@@ -19,30 +21,56 @@ export function SimulatePage() {
     [meta, nodes, edges],
   )
 
-  const [phase, setPhase] = useState<SimPhase>(() =>
-    createSimulation(nodes, edges),
-  )
-  /** 進入選項時仍顯示上一句台詞（對齊影片：底框＋右上選項同時出現） */
+  const [session, setSession] = useState<Session>('idle')
+  const [phase, setPhase] = useState<SimPhase | null>(null)
+  /** 進入選項時仍顯示上一句台詞 */
   const [promptLine, setPromptLine] = useState('')
+  const [endReason, setEndReason] = useState<'end' | 'aborted' | 'empty'>(
+    'end',
+  )
 
+  // 流程變更時回到待機，避免編輯中途誤觸
   useEffect(() => {
-    const start = createSimulation(nodes, edges)
-    setPhase(start)
-    setPromptLine(start.type === 'message' ? start.text : '')
-  }, [graphKey, nodes, edges])
+    setSession('idle')
+    setPhase(null)
+    setPromptLine('')
+    setEndReason('end')
+  }, [graphKey])
 
   const speaker =
     meta.speakerName?.trim() ||
     meta.boothName?.replace(/攤位$/, '') ||
     'NPC'
 
-  const restart = () => {
+  const boothLabel = meta.boothName || `${meta.boothId}攤位`
+
+  const startDialogue = () => {
     const start = createSimulation(nodes, edges)
-    setPhase(start)
+    if (start.type === 'finished') {
+      setEndReason(start.reason === 'empty' ? 'empty' : 'end')
+      setSession('ended')
+      setPhase(start)
+      return
+    }
     setPromptLine(start.type === 'message' ? start.text : '')
+    setPhase(start)
+    setSession('active')
+  }
+
+  const endDialogue = (reason: 'end' | 'aborted' = 'aborted') => {
+    setEndReason(reason)
+    setSession('ended')
+    setPhase({ type: 'finished', reason: reason === 'aborted' ? 'end' : reason })
+  }
+
+  const backToIdle = () => {
+    setSession('idle')
+    setPhase(null)
+    setPromptLine('')
   }
 
   const onAdvance = () => {
+    if (!phase) return
     if (phase.type === 'message') {
       setPromptLine(phase.text)
     }
@@ -50,30 +78,42 @@ export function SimulatePage() {
       window.open(phase.url, '_blank', 'noopener,noreferrer')
     }
     const next = advanceSimulation(phase, nodes, edges)
+    if (next.type === 'finished') {
+      setEndReason(next.reason === 'empty' ? 'empty' : 'end')
+      setSession('ended')
+      setPhase(next)
+      return
+    }
     setPhase(next)
   }
 
   const onPick = (choiceId: string) => {
-    setPhase(pickChoice(phase, nodes, edges, choiceId))
+    if (!phase) return
+    const next = pickChoice(phase, nodes, edges, choiceId)
+    if (next.type === 'finished') {
+      setEndReason(next.reason === 'empty' ? 'empty' : 'end')
+      setSession('ended')
+      setPhase(next)
+      return
+    }
+    setPhase(next)
   }
 
   const bottomText =
-    phase.type === 'message'
-      ? phase.text || '（空白台詞）'
-      : phase.type === 'url'
-        ? `請開啟連結：\n${phase.url}`
-        : phase.type === 'choices'
-          ? promptLine || '請選擇右上方的選項……'
-          : phase.type === 'finished'
-            ? phase.reason === 'empty'
-              ? '目前沒有可模擬的流程，請先到編輯器建立台詞。'
-              : '……'
+    !phase
+      ? ''
+      : phase.type === 'message'
+        ? phase.text || '（空白台詞）'
+        : phase.type === 'url'
+          ? `請開啟連結：\n${phase.url}`
+          : phase.type === 'choices'
+            ? promptLine || '請選擇右上方的選項……'
             : ''
 
   const canClickMessage =
-    phase.type === 'message' ||
-    phase.type === 'url' ||
-    (phase.type === 'finished' && phase.reason !== 'empty')
+    session === 'active' &&
+    phase != null &&
+    (phase.type === 'message' || phase.type === 'url')
 
   return (
     <div className="page-shell sim-page">
@@ -88,9 +128,15 @@ export function SimulatePage() {
               onChange={(e) => setMeta({ speakerName: e.target.value })}
             />
           </label>
-          <button type="button" onClick={restart}>
-            重新開始
-          </button>
+          {session === 'active' && (
+            <button
+              type="button"
+              className="sim-end-btn"
+              onClick={() => endDialogue('aborted')}
+            >
+              結束對話
+            </button>
+          )}
           <Link to="/">回編輯器</Link>
         </div>
       </div>
@@ -104,7 +150,23 @@ export function SimulatePage() {
         >
           <div className="rpg-vignette" aria-hidden />
 
-          {phase.type === 'choices' && (
+          {/* 待機：明確開始 */}
+          {session === 'idle' && (
+            <div className="rpg-gate">
+              <p className="rpg-gate__place">{boothLabel}</p>
+              <p className="rpg-gate__hint">靠近攤位，開始與店員對話</p>
+              <button
+                type="button"
+                className="rpg-gate__start"
+                onClick={startDialogue}
+              >
+                開始對話
+              </button>
+            </div>
+          )}
+
+          {/* 進行中：選項 */}
+          {session === 'active' && phase?.type === 'choices' && (
             <div className="rpg-choices" role="menu">
               {phase.options.map((opt) => (
                 <button
@@ -120,26 +182,53 @@ export function SimulatePage() {
             </div>
           )}
 
-          <button
-            type="button"
-            className={`rpg-message${canClickMessage ? '' : ' rpg-message--passive'}`}
-            onClick={
-              phase.type === 'finished' && phase.reason !== 'empty'
-                ? restart
-                : canClickMessage
-                  ? onAdvance
-                  : undefined
-            }
-            aria-label={canClickMessage ? '點擊繼續' : '對話內容'}
-          >
-            <div className="rpg-message__name">{speaker}</div>
-            <div className="rpg-message__text">{bottomText}</div>
-            {canClickMessage && (
-              <span className="rpg-message__hint">
-                {phase.type === 'finished' ? '再玩一次 ▼' : '▼'}
-              </span>
-            )}
-          </button>
+          {/* 進行中：訊息框 */}
+          {session === 'active' && phase && (
+            <button
+              type="button"
+              className={`rpg-message${canClickMessage ? '' : ' rpg-message--passive'}`}
+              onClick={canClickMessage ? onAdvance : undefined}
+              aria-label={canClickMessage ? '點擊繼續' : '對話內容'}
+            >
+              <div className="rpg-message__name">{speaker}</div>
+              <div className="rpg-message__text">{bottomText}</div>
+              {canClickMessage && (
+                <span className="rpg-message__hint">▼</span>
+              )}
+            </button>
+          )}
+
+          {/* 結束：明確結束狀態 */}
+          {session === 'ended' && (
+            <div className="rpg-gate rpg-gate--ended">
+              <p className="rpg-gate__place">對話結束</p>
+              <p className="rpg-gate__hint">
+                {endReason === 'empty'
+                  ? '目前沒有可模擬的流程，請先到編輯器建立台詞。'
+                  : endReason === 'aborted'
+                    ? '你已結束這次對話。'
+                    : '這次對話已完整結束。'}
+              </p>
+              <div className="rpg-gate__actions">
+                {endReason !== 'empty' && (
+                  <button
+                    type="button"
+                    className="rpg-gate__start"
+                    onClick={startDialogue}
+                  >
+                    開始新對話
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="rpg-gate__secondary"
+                  onClick={backToIdle}
+                >
+                  回到待機
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

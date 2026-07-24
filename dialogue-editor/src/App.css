@@ -813,15 +813,79 @@
   image-rendering: auto;
 }
 
-.rpg-vignette {
-  pointer-events: none;
+.sim-end-btn {
+  border-color: rgba(255, 120, 120, 0.45) !important;
+  color: #ffb4b4 !important;
+  background: rgba(120, 20, 20, 0.35) !important;
+}
+
+.rpg-gate {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 42%,
-    rgba(0, 0, 0, 0.35) 100%
-  );
+  z-index: 4;
+  display: grid;
+  place-content: center;
+  gap: 0.65rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.42);
+  text-align: center;
+}
+
+.rpg-gate--ended {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.rpg-gate__place {
+  margin: 0;
+  color: #ffe14a;
+  font-size: clamp(1.2rem, 2.4vw, 1.6rem);
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.rpg-gate__hint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+}
+
+.rpg-gate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: center;
+  margin-top: 0.35rem;
+}
+
+.rpg-gate__start {
+  border: 2px solid rgba(255, 224, 138, 0.55);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #ffe14a;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.7rem 1.35rem;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+}
+
+.rpg-gate__start:hover {
+  background: rgba(30, 30, 20, 0.9);
+  border-color: #ffe14a;
+}
+
+.rpg-gate__secondary {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.95rem;
+  padding: 0.65rem 1.1rem;
+  cursor: pointer;
+}
+
+.rpg-gate__secondary:hover {
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 /* 右上選項：對齊影片中 RPGMV Show Choices */
