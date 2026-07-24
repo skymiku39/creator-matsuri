@@ -157,7 +157,11 @@ export const useDialogueStore = create<DialogueState>((set, get) => ({
   select: (id) =>
     set({
       selectedId: id,
-      nodes: get().nodes.map((n) => ({ ...n, selected: Boolean(id) && n.id === id })),
+      // 僅供錯誤列表點選定位；一般選取交給 React Flow 的 selection change
+      nodes: get().nodes.map((n) => ({
+        ...n,
+        selected: Boolean(id) && n.id === id,
+      })),
     }),
 
   updateNodeData: (id, patch) =>

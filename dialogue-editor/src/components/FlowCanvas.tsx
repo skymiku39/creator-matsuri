@@ -40,20 +40,25 @@ export function FlowCanvas() {
   const onNodesChange = useDialogueStore((s) => s.onNodesChange)
   const onEdgesChange = useDialogueStore((s) => s.onEdgesChange)
   const onConnect = useDialogueStore((s) => s.onConnect)
-  const select = useDialogueStore((s) => s.select)
-
   const onSelectionChange = useCallback(
     ({ nodes: selected }: { nodes: { id: string }[] }) => {
-      select(selected[0]?.id ?? null)
+      // 只同步 selectedId，不要重寫 nodes（否則會打斷拖曳／連線）
+      const id = selected[0]?.id ?? null
+      useDialogueStore.setState({ selectedId: id })
     },
-    [select],
+    [],
   )
 
   const isValidConnection = useCallback(
     (connection: Connection | { source: string | null; target: string | null }) => {
+      // 拖線過程中尚未碰到目標時 target 為 null，必須允許，否則「拉不出線」
+      if (!connection.source) return false
+      if (!connection.target) return true
+
       const source = nodes.find((n) => n.id === connection.source)
       const target = nodes.find((n) => n.id === connection.target)
       if (!source || !target) return false
+      if (source.id === target.id) return false
       const sk = source.data.kind
       const tk = target.data.kind
       return ALLOWED[sk]?.includes(tk) ?? false
@@ -75,8 +80,12 @@ export function FlowCanvas() {
         isValidConnection={isValidConnection}
         nodeTypes={nodeTypes}
         fitView
+        nodesDraggable
+        nodesConnectable
+        elementsSelectable
         proOptions={proOptions}
         deleteKeyCode={['Backspace', 'Delete']}
+        connectionRadius={28}
       >
         <Background gap={22} size={1} color="rgba(40, 52, 48, 0.12)" />
         <Controls />

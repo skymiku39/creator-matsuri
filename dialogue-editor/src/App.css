@@ -248,13 +248,35 @@
   border: 1px solid rgba(28, 36, 33, 0.14);
   background: rgba(255, 255, 255, 0.95);
   box-shadow: var(--shadow);
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  /* 不要對 transform 做 transition，會干擾節點拖曳 */
+  transition: box-shadow 180ms ease, outline-color 180ms ease;
 }
 
 .flow-node.selected {
-  transform: translateY(-2px);
   box-shadow: 0 16px 28px rgba(28, 36, 33, 0.16);
   outline: 2px solid rgba(180, 35, 24, 0.55);
+}
+
+/* 放大連線點，方便拖曳拉線 */
+.react-flow__handle {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  background: var(--teal);
+}
+
+.react-flow__handle-left,
+.react-flow__handle-right {
+  background: var(--blue);
+}
+
+.react-flow__handle-top,
+.react-flow__handle-bottom {
+  background: var(--teal);
+}
+
+.flow-node.menu .react-flow__handle-right {
+  background: var(--amber);
 }
 
 .flow-node__kind {

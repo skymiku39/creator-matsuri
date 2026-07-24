@@ -1,3 +1,4 @@
+import { ReactFlowProvider } from '@xyflow/react'
 import { FlowCanvas } from './components/FlowCanvas'
 import { Inspector } from './components/Inspector'
 import { Toolbar } from './components/Toolbar'
@@ -6,14 +7,16 @@ import './App.css'
 
 function App() {
   return (
-    <div className="app-shell">
-      <Toolbar />
-      <div className="workspace">
-        <Toolbox />
-        <FlowCanvas />
-        <Inspector />
+    <ReactFlowProvider>
+      <div className="app-shell">
+        <Toolbar />
+        <div className="workspace">
+          <Toolbox />
+          <FlowCanvas />
+          <Inspector />
+        </div>
       </div>
-    </div>
+    </ReactFlowProvider>
   )
 }
 
