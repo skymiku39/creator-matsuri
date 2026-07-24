@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview",
+    "preview": "vite preview --port 4173 --open",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "pack": "npm run build && node scripts/pack-release.mjs",
+    "release:gh": "node scripts/gh-release.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",

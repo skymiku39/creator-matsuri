@@ -46,8 +46,45 @@ npm run dev
 | 連結 | 開啟外部 URL（需插件或腳本） |
 | 結束 | 返回選單或結束對話 |
 
+## 打包 Release
+
+### 1. 更新版號（寫在 `package.json` 的 `version`）
+
+例如改成 `0.3.0`。
+
+### 2. 產出壓縮包
+
+```bash
+cd dialogue-editor
+npm test
+npm run pack
+```
+
+會產生：
+
+- `release/dialogue-editor-vX.Y.Z/`（可直接測）
+- `release/dialogue-editor-vX.Y.Z-win.zip`（給別人下載）
+
+收件者解壓後雙擊 `啟動編輯器.bat`（需已安裝 Node.js）。
+
+### 3. 發到 GitHub Releases（可選）
+
+先把程式碼推上 GitHub，再執行：
+
+```bash
+git push origin master
+cd dialogue-editor
+npm run release:gh
+```
+
+或手動：GitHub → Releases → Draft a new release → 上傳 zip，Tag 用 `v0.3.0`。
+
+> 若要做成獨立 `.exe`（免裝 Node），需再包 Electron／Tauri，可另開需求。
+
 ## 指令
 
 - `npm run dev` — 開發伺服器（等同啟動編輯器）
 - `npm run test` — 單元測試
 - `npm run build` — 正式建置
+- `npm run pack` — 建置並打成 release zip
+- `npm run release:gh` — 用 GitHub CLI 上傳 Release
