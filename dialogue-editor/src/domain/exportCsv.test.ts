@@ -3,7 +3,7 @@ import { csvRowsToString, flowToCsvRows } from './exportCsv'
 import { groupRows, parseCsvText } from './importCsv'
 import { rowsToFlow } from './rowsToFlow'
 import { validateFlow } from './validate'
-import { normalizeBoothId } from './types'
+import { looksLikeReturnChoice, normalizeBoothId } from './types'
 import type { FlowNode } from './exportCsv'
 import type { Edge } from '@xyflow/react'
 import { nextId, syncIdCounterFromGraph } from '../store/useDialogueStore'
@@ -279,6 +279,19 @@ describe('validateFlow', () => {
     }
     const issues = validateFlow([...nodes, orphan], edges)
     expect(issues.some((i) => i.message.includes('未連上主幹'))).toBe(true)
+  })
+})
+
+describe('looksLikeReturnChoice', () => {
+  it('不以備註中的說明文字誤判返回', () => {
+    expect(
+      looksLikeReturnChoice(
+        '再次辦活動的原因',
+        '一共有5個對話選項，可以依照創作的性質自訂，\n但每個對話選項之中必須包含返回的選項。',
+      ),
+    ).toBe(false)
+    expect(looksLikeReturnChoice('等一下再過來', '')).toBe(true)
+    expect(looksLikeReturnChoice('問問題', '返回選項')).toBe(true)
   })
 })
 

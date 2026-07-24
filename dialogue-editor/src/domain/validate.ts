@@ -117,14 +117,19 @@ export function validateFlow(
         })
       }
       const handle = e.sourceHandle ?? ''
-      if (handle) {
-        if (handleSeen.has(handle)) {
-          issues.push({
-            level: 'error',
-            message: `選項 handle「${handle}」重複使用`,
-            nodeId: menuId,
-          })
-        }
+      if (!handle || !/^opt-[A-F]$/.test(handle)) {
+        issues.push({
+          level: 'error',
+          message: '選單出邊必須從 opt-A～F 的連線點拉出',
+          nodeId: menuId,
+        })
+      } else if (handleSeen.has(handle)) {
+        issues.push({
+          level: 'error',
+          message: `選項 handle「${handle}」重複使用`,
+          nodeId: menuId,
+        })
+      } else {
         handleSeen.add(handle)
       }
     }

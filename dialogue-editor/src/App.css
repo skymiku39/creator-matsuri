@@ -106,6 +106,8 @@
   padding: 0;
   display: grid;
   gap: 0.25rem;
+  max-height: 7.5rem;
+  overflow: auto;
 }
 
 .issues li {

@@ -150,9 +150,13 @@ export function Toolbar() {
           <input
             value={meta.boothId}
             onChange={(e) => {
-              setMeta({ boothId: e.target.value.replace(/[^\d]/g, '') || '01' })
+              setMeta({ boothId: e.target.value.replace(/[^\d]/g, '') })
             }}
-            onBlur={() => setMeta({ boothId: normalizeBoothId(meta.boothId) })}
+            onBlur={() =>
+              setMeta({
+                boothId: normalizeBoothId(meta.boothId || '01'),
+              })
+            }
           />
         </label>
         <label className="field inline">

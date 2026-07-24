@@ -53,9 +53,11 @@ export function normalizeBoothId(raw: string): string {
   return digits.padStart(2, '0')
 }
 
-/** 判斷選項文案是否像「返回／離開」類（收斂關鍵字，避免誤判） */
+/** 判斷選項文案是否像「返回／離開」類（收斂關鍵字，避免備註誤判） */
 export function looksLikeReturnChoice(text: string, note = ''): boolean {
   const t = text.trim()
-  if (note.includes('返回')) return true
+  const n = note.trim()
+  // 僅認明確標記，避免「必須包含返回的選項」這類說明誤判
+  if (/^(返回選項|此為返回選項|返回／離開)$/.test(n)) return true
   return /等一下再過來|稍後再來|返回選單|^返回$|^離開$|^再見$/.test(t)
 }
