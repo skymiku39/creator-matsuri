@@ -191,6 +191,109 @@
   font-size: 0.82rem;
 }
 
+.panel-hint {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.panel-hint kbd,
+.clipboard-banner kbd {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.65);
+  font-size: 0.72rem;
+}
+
+.link-editor {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.link-editor h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.88rem;
+}
+
+.field select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  background: #fff;
+}
+
+.field--compact {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.field--compact span {
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.menu-outs {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.clipboard-banner {
+  position: absolute;
+  top: 0.55rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  max-width: min(92%, 520px);
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(20, 30, 28, 0.88);
+  color: #f5f5f0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.clipboard-banner button {
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+}
+
+.react-flow__node.is-clipboard-source .flow-node {
+  outline: 2px dashed #c4a35a;
+  outline-offset: 2px;
+}
+
+.react-flow__node.is-clipboard-anchor .flow-node {
+  outline: 2px solid #c4a35a;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(196, 163, 90, 0.28);
+}
+
 .tool-grid {
   display: grid;
   gap: 0.45rem;

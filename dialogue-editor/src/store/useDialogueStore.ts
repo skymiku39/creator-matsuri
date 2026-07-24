@@ -21,6 +21,12 @@ import { CONNECTION_ALLOWED } from '../domain/connectionRules'
 import { nextId, syncIdCounterFromGraph } from './idFactory'
 import { autoCompleteEndNodes } from '../domain/autoCompleteEnd'
 import { getTemplate } from '../domain/templates/catalog'
+import {
+  createClipboard,
+  pasteClipboard,
+  type GraphClipboard,
+} from '../domain/clipboardPaste'
+import { setIncomingLink, setOutgoingLink } from '../domain/linkEdit'
 
 export { nextId, syncIdCounterFromGraph } from './idFactory'
 
@@ -197,6 +203,7 @@ interface DialogueState {
   nodes: FlowNode[]
   edges: Edge[]
   selectedId: string | null
+  clipboard: GraphClipboard | null
   connectPicker: ConnectPickerState | null
   setMeta: (patch: Partial<BoothMeta>) => void
   onNodesChange: (changes: NodeChange<FlowNode>[]) => void
@@ -214,6 +221,18 @@ interface DialogueState {
   createAndConnectFromPicker: (kind: DialogueNodeKind) => void
   autoCompleteEnds: () => number
   loadTemplate: (templateId: string) => boolean
+  clearClipboard: () => void
+  /** Shift＝線性片段；Ctrl＝單一節點。第一次設來源，之後貼到目標 */
+  handleModifierNodeClick: (
+    mode: 'segment' | 'single',
+    nodeId: string,
+  ) => { action: 'source' | 'paste' | 'cleared'; message?: string }
+  setIncoming: (nodeId: string, parentId: string | null) => string | null
+  setOutgoing: (
+    nodeId: string,
+    childId: string | null,
+    sourceHandle?: string | null,
+  ) => string | null
 }
 
 const initial = starterFlow()
@@ -226,6 +245,7 @@ export const useDialogueStore = create<DialogueState>()(
       nodes: initial.nodes,
       edges: initial.edges,
       selectedId: null,
+      clipboard: null,
       connectPicker: null,
 
       setMeta: (patch) => {
@@ -326,6 +346,7 @@ export const useDialogueStore = create<DialogueState>()(
           edges,
           selectedId: null,
           connectPicker: null,
+          clipboard: null,
         })
       },
 
@@ -338,6 +359,7 @@ export const useDialogueStore = create<DialogueState>()(
           edges: flow.edges,
           selectedId: null,
           connectPicker: null,
+          clipboard: null,
         })
       },
 
@@ -410,8 +432,80 @@ export const useDialogueStore = create<DialogueState>()(
           edges: completed.edges,
           selectedId: null,
           connectPicker: null,
+          clipboard: null,
         })
         return true
+      },
+
+      clearClipboard: () => set({ clipboard: null }),
+
+      handleModifierNodeClick: (mode, nodeId) => {
+        const { nodes, edges, clipboard } = get()
+        const sameSource =
+          clipboard &&
+          clipboard.mode === mode &&
+          clipboard.anchorId === nodeId
+
+        if (sameSource) {
+          set({ clipboard: null })
+          return { action: 'cleared' as const }
+        }
+
+        if (
+          clipboard &&
+          clipboard.mode === mode &&
+          !clipboard.nodeIds.includes(nodeId)
+        ) {
+          const result = pasteClipboard(clipboard, nodeId, nodes, edges)
+          if (!result.ok) {
+            return {
+              action: 'paste' as const,
+              message: result.reason ?? '貼上失敗',
+            }
+          }
+          syncIdCounterFromGraph(result.nodes, result.edges)
+          set({
+            nodes: withExclusiveSelection(result.nodes, nodeId),
+            edges: result.edges,
+            selectedId: nodeId,
+          })
+          return { action: 'paste' as const }
+        }
+
+        const next = createClipboard(mode, nodeId, nodes, edges)
+        set({
+          clipboard: next,
+          selectedId: nodeId,
+          nodes: withExclusiveSelection(nodes, nodeId),
+        })
+        return { action: 'source' as const }
+      },
+
+      setIncoming: (nodeId, parentId) => {
+        const result = setIncomingLink(
+          nodeId,
+          parentId,
+          get().nodes,
+          get().edges,
+        )
+        if (!result.ok) return result.reason ?? '無法設定前驅'
+        syncIdCounterFromGraph(result.nodes, result.edges)
+        set({ edges: result.edges })
+        return null
+      },
+
+      setOutgoing: (nodeId, childId, sourceHandle) => {
+        const result = setOutgoingLink(
+          nodeId,
+          childId,
+          get().nodes,
+          get().edges,
+          sourceHandle,
+        )
+        if (!result.ok) return result.reason ?? '無法設定後繼'
+        syncIdCounterFromGraph(result.nodes, result.edges)
+        set({ edges: result.edges })
+        return null
       },
     }),
     {

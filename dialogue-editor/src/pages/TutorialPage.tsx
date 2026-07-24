@@ -31,6 +31,11 @@ export function TutorialPage() {
             <li>從節點邊緣的 <strong>+</strong> 點擊，會浮出「可以接到誰」</li>
             <li>也可直接從 + 拖曳到目標節點</li>
             <li>選單右側 A～F 對應選項字母</li>
+            <li>
+              <kbd>Shift</kbd>：複製線性對話串到其他節點；
+              <kbd>Ctrl</kbd>：只複製單一節點文字
+            </li>
+            <li>右側屬性可查看並修改「上一個／下一個」連線</li>
           </ol>
         </section>
 
