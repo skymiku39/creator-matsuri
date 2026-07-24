@@ -52,8 +52,9 @@ export function Inspector() {
         <h2>屬性</h2>
         <p className="panel-lead">選取畫布上的節點以編輯台詞與備註。</p>
         <p className="panel-hint">
-          <kbd>Shift</kbd> 複製線性對話串　
-          <kbd>Ctrl</kbd> 複製單一節點文字
+          <kbd>Ctrl</kbd> 多選　
+          <kbd>Shift</kbd> 選線性片段　
+          <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 複製
         </p>
       </aside>
     )
@@ -190,8 +191,8 @@ export function Inspector() {
       </div>
 
       <p className="panel-hint">
-        <kbd>Shift</kbd> 片段　
-        <kbd>Ctrl</kbd> 單節點
+        <kbd>Ctrl</kbd> 多選　
+        <kbd>Shift</kbd> 片段　拖曳移動
       </p>
     </aside>
   )

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { Edge } from '@xyflow/react'
 import { expandLinearSegment } from './linearSegment'
-import { createClipboard, pasteClipboard } from './clipboardPaste'
+import {
+  captureSelection,
+  pasteSelectionDuplicate,
+} from './selectionClipboard'
 import { setIncomingLink, setOutgoingLink } from './linkEdit'
 import type { FlowNode } from './flowGraph'
 import { syncIdCounterFromGraph } from '../store/idFactory'
@@ -80,31 +83,24 @@ describe('expandLinearSegment', () => {
   })
 })
 
-describe('pasteClipboard', () => {
-  it('Ctrl 單一節點覆寫同 kind 文字', () => {
+describe('selectionClipboard', () => {
+  it('Ctrl+C／V 會複製選取節點與內部連線', () => {
     const { nodes, edges } = sample()
     syncIdCounterFromGraph(nodes, edges)
-    const clip = createClipboard('single', 'a1', nodes, edges)
-    const result = pasteClipboard(clip, 'b1', nodes, edges)
-    expect(result.ok).toBe(true)
-    const b1 = result.nodes.find((n) => n.id === 'b1')!
-    expect(b1.data.text).toBe('答A')
-  })
+    const clip = captureSelection(['cA', 'a1'], nodes, edges)
+    expect(clip).toBeTruthy()
+    expect(clip!.nodes).toHaveLength(2)
+    expect(clip!.edges).toHaveLength(1)
 
-  it('Shift 片段貼到另一選項時保留目標選項文字', () => {
-    const { nodes, edges } = sample()
-    syncIdCounterFromGraph(nodes, edges)
-    const clip = createClipboard('segment', 'cA', nodes, edges)
-    expect(clip.nodeIds).toEqual(['cA', 'a1'])
-    const result = pasteClipboard(clip, 'cB', nodes, edges)
-    expect(result.ok).toBe(true)
-    const cB = result.nodes.find((n) => n.id === 'cB')!
-    expect(cB.data.text).toBe('問B')
-    const out = result.edges.find((e) => e.source === 'cB')
-    expect(out).toBeTruthy()
-    const content = result.nodes.find((n) => n.id === out!.target)!
-    expect(content.data.text).toBe('答A')
-    expect(result.nodes.some((n) => n.id === 'b1')).toBe(false)
+    const pasted = pasteSelectionDuplicate(clip!, nodes, edges)
+    expect(pasted.newIds).toHaveLength(2)
+    expect(pasted.nodes.length).toBe(nodes.length + 2)
+    expect(
+      pasted.edges.some(
+        (e) =>
+          e.source === pasted.newIds[0] && e.target === pasted.newIds[1],
+      ),
+    ).toBe(true)
   })
 })
 

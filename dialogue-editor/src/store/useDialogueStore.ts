@@ -22,10 +22,11 @@ import { nextId, syncIdCounterFromGraph } from './idFactory'
 import { autoCompleteEndNodes } from '../domain/autoCompleteEnd'
 import { getTemplate } from '../domain/templates/catalog'
 import {
-  createClipboard,
-  pasteClipboard,
-  type GraphClipboard,
-} from '../domain/clipboardPaste'
+  captureSelection,
+  pasteSelectionDuplicate,
+  type SelectionClipboard,
+} from '../domain/selectionClipboard'
+import { expandLinearSegment } from '../domain/linearSegment'
 import { setIncomingLink, setOutgoingLink } from '../domain/linkEdit'
 
 export { nextId, syncIdCounterFromGraph } from './idFactory'
@@ -36,13 +37,19 @@ const defaultMeta: BoothMeta = {
   locale: 'zh_TW',
 }
 
-function withExclusiveSelection(
+function withSelection(
   nodes: FlowNode[],
-  selectedId: string | null,
+  selectedIds: Set<string> | string | null,
 ): FlowNode[] {
+  const set =
+    selectedIds == null
+      ? new Set<string>()
+      : typeof selectedIds === 'string'
+        ? new Set([selectedIds])
+        : selectedIds
   return nodes.map((n) => ({
     ...n,
-    selected: Boolean(selectedId) && n.id === selectedId,
+    selected: set.has(n.id),
   }))
 }
 
@@ -203,13 +210,16 @@ interface DialogueState {
   nodes: FlowNode[]
   edges: Edge[]
   selectedId: string | null
-  clipboard: GraphClipboard | null
+  /** Ctrl+C 暫存；不寫入 localStorage */
+  clipboard: SelectionClipboard | null
   connectPicker: ConnectPickerState | null
   setMeta: (patch: Partial<BoothMeta>) => void
   onNodesChange: (changes: NodeChange<FlowNode>[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
   onConnect: (connection: Connection) => void
   select: (id: string | null) => void
+  /** Shift：選取該點所在的最大線性片段 */
+  selectLinearSegment: (nodeId: string) => void
   updateNodeData: (id: string, patch: Partial<DialogueNodeData>) => void
   addNode: (kind: DialogueNodeKind) => void
   removeSelected: () => void
@@ -221,12 +231,8 @@ interface DialogueState {
   createAndConnectFromPicker: (kind: DialogueNodeKind) => void
   autoCompleteEnds: () => number
   loadTemplate: (templateId: string) => boolean
-  clearClipboard: () => void
-  /** Shift＝線性片段；Ctrl＝單一節點。第一次設來源，之後貼到目標 */
-  handleModifierNodeClick: (
-    mode: 'segment' | 'single',
-    nodeId: string,
-  ) => { action: 'source' | 'paste' | 'cleared'; message?: string }
+  copySelection: () => boolean
+  pasteClipboard: () => boolean
   setIncoming: (nodeId: string, parentId: string | null) => string | null
   setOutgoing: (
     nodeId: string,
@@ -296,8 +302,18 @@ export const useDialogueStore = create<DialogueState>()(
       select: (id) =>
         set({
           selectedId: id,
-          nodes: withExclusiveSelection(get().nodes, id),
+          nodes: withSelection(get().nodes, id),
         }),
+
+      selectLinearSegment: (nodeId) => {
+        const { nodes, edges } = get()
+        const ids = expandLinearSegment(nodeId, nodes, edges)
+        const setIds = new Set(ids.length > 0 ? ids : [nodeId])
+        set({
+          selectedId: nodeId,
+          nodes: withSelection(nodes, setIds),
+        })
+      },
 
       updateNodeData: (id, patch) => {
         set({
@@ -323,17 +339,26 @@ export const useDialogueStore = create<DialogueState>()(
           selected: true,
         }
         set({
-          nodes: withExclusiveSelection([...get().nodes, node], id),
+          nodes: withSelection([...get().nodes, node], id),
           selectedId: id,
         })
       },
 
       removeSelected: () => {
-        const id = get().selectedId
-        if (!id) return
+        const selected = get().nodes.filter((n) => n.selected).map((n) => n.id)
+        const ids = new Set(
+          selected.length > 0
+            ? selected
+            : get().selectedId
+              ? [get().selectedId!]
+              : [],
+        )
+        if (ids.size === 0) return
         set({
-          nodes: get().nodes.filter((n) => n.id !== id),
-          edges: get().edges.filter((e) => e.source !== id && e.target !== id),
+          nodes: get().nodes.filter((n) => !ids.has(n.id)),
+          edges: get().edges.filter(
+            (e) => !ids.has(e.source) && !ids.has(e.target),
+          ),
           selectedId: null,
         })
       },
@@ -397,7 +422,7 @@ export const useDialogueStore = create<DialogueState>()(
         }
 
         set({
-          nodes: withExclusiveSelection([...get().nodes, node], id),
+          nodes: withSelection([...get().nodes, node], id),
           selectedId: id,
           connectPicker: null,
         })
@@ -437,48 +462,33 @@ export const useDialogueStore = create<DialogueState>()(
         return true
       },
 
-      clearClipboard: () => set({ clipboard: null }),
+      copySelection: () => {
+        const selectedIds = get()
+          .nodes.filter((n) => n.selected)
+          .map((n) => n.id)
+        const ids =
+          selectedIds.length > 0
+            ? selectedIds
+            : get().selectedId
+              ? [get().selectedId!]
+              : []
+        const clip = captureSelection(ids, get().nodes, get().edges)
+        if (!clip) return false
+        set({ clipboard: clip })
+        return true
+      },
 
-      handleModifierNodeClick: (mode, nodeId) => {
-        const { nodes, edges, clipboard } = get()
-        const sameSource =
-          clipboard &&
-          clipboard.mode === mode &&
-          clipboard.anchorId === nodeId
-
-        if (sameSource) {
-          set({ clipboard: null })
-          return { action: 'cleared' as const }
-        }
-
-        if (
-          clipboard &&
-          clipboard.mode === mode &&
-          !clipboard.nodeIds.includes(nodeId)
-        ) {
-          const result = pasteClipboard(clipboard, nodeId, nodes, edges)
-          if (!result.ok) {
-            return {
-              action: 'paste' as const,
-              message: result.reason ?? '貼上失敗',
-            }
-          }
-          syncIdCounterFromGraph(result.nodes, result.edges)
-          set({
-            nodes: withExclusiveSelection(result.nodes, nodeId),
-            edges: result.edges,
-            selectedId: nodeId,
-          })
-          return { action: 'paste' as const }
-        }
-
-        const next = createClipboard(mode, nodeId, nodes, edges)
+      pasteClipboard: () => {
+        const clip = get().clipboard
+        if (!clip) return false
+        const result = pasteSelectionDuplicate(clip, get().nodes, get().edges)
+        syncIdCounterFromGraph(result.nodes, result.edges)
         set({
-          clipboard: next,
-          selectedId: nodeId,
-          nodes: withExclusiveSelection(nodes, nodeId),
+          nodes: result.nodes,
+          edges: result.edges,
+          selectedId: result.newIds[0] ?? null,
         })
-        return { action: 'source' as const }
+        return true
       },
 
       setIncoming: (nodeId, parentId) => {

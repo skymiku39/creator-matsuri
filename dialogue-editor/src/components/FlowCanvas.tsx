@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, type MouseEvent } from 'react'
 import {
   Background,
   Controls,
@@ -19,7 +19,6 @@ import {
   MessageNode,
   UrlNode,
 } from './nodes/DialogueNodes'
-import type { FlowNode } from '../domain/flowGraph'
 
 const nodeTypes: NodeTypes = {
   message: MessageNode,
@@ -36,22 +35,9 @@ export function FlowCanvas() {
   const onNodesChange = useDialogueStore((s) => s.onNodesChange)
   const onEdgesChange = useDialogueStore((s) => s.onEdgesChange)
   const onConnect = useDialogueStore((s) => s.onConnect)
-  const handleModifierNodeClick = useDialogueStore((s) => s.handleModifierNodeClick)
-  const clearClipboard = useDialogueStore((s) => s.clearClipboard)
-
-  const displayNodes = useMemo(() => {
-    const sourceSet = new Set(clipboard?.nodeIds ?? [])
-    return nodes.map((n) => ({
-      ...n,
-      className: [
-        n.className,
-        sourceSet.has(n.id) ? 'is-clipboard-source' : '',
-        clipboard?.anchorId === n.id ? 'is-clipboard-anchor' : '',
-      ]
-        .filter(Boolean)
-        .join(' '),
-    }))
-  }, [nodes, clipboard])
+  const selectLinearSegment = useDialogueStore((s) => s.selectLinearSegment)
+  const copySelection = useDialogueStore((s) => s.copySelection)
+  const pasteClipboard = useDialogueStore((s) => s.pasteClipboard)
 
   const onSelectionChange = useCallback(
     ({ nodes: selected }: { nodes: { id: string }[] }) => {
@@ -63,24 +49,43 @@ export function FlowCanvas() {
 
   const onNodeClick = useCallback(
     (event: MouseEvent, node: Node) => {
-      if (event.shiftKey) {
+      // Ctrl／Cmd：交給 React Flow 做多選切換；Shift：選取線性片段
+      if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
         event.preventDefault()
-        const result = handleModifierNodeClick('segment', node.id)
-        if (result.message) alert(result.message)
-        return
-      }
-      if (event.ctrlKey || event.metaKey) {
-        event.preventDefault()
-        const result = handleModifierNodeClick('single', node.id)
-        if (result.message) alert(result.message)
+        event.stopPropagation()
+        selectLinearSegment(node.id)
       }
     },
-    [handleModifierNodeClick],
+    [selectLinearSegment],
   )
 
-  const onPaneClick = useCallback(() => {
-    clearClipboard()
-  }, [clearClipboard])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+      const mod = e.ctrlKey || e.metaKey
+      if (!mod) return
+      if (e.key === 'c' || e.key === 'C') {
+        if (copySelection()) {
+          e.preventDefault()
+        }
+      }
+      if (e.key === 'v' || e.key === 'V') {
+        if (pasteClipboard()) {
+          e.preventDefault()
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [copySelection, pasteClipboard])
 
   const isValidConnection = useCallback(
     (connection: Connection | { source: string | null; target: string | null }) => {
@@ -97,35 +102,34 @@ export function FlowCanvas() {
   )
 
   const proOptions = useMemo(() => ({ hideAttribution: true }), [])
+  const selectedCount = nodes.filter((n) => n.selected).length
 
   return (
     <div className="canvas-wrap">
-      {clipboard && (
-        <div className="clipboard-banner" role="status">
-          {clipboard.mode === 'segment'
-            ? 'Shift：已選線性片段為來源，再 Shift 點其他節點貼上（再點來源取消）'
-            : 'Ctrl：已選單一節點為來源，再 Ctrl 點同類型節點貼上文字（再點來源取消）'}
-          <button type="button" onClick={clearClipboard}>
-            取消
-          </button>
-        </div>
-      )}
+      <div className="canvas-hint" role="note">
+        <kbd>Ctrl</kbd> 多選　
+        <kbd>Shift</kbd> 選線性片段　拖曳移動　
+        <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 複製貼上
+        {clipboard ? `　（已複製 ${clipboard.nodes.length} 個）` : ''}
+        {selectedCount > 1 ? `　已選 ${selectedCount}` : ''}
+      </div>
       <ReactFlow
-        nodes={displayNodes as FlowNode[]}
+        nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onSelectionChange={onSelectionChange}
         onNodeClick={onNodeClick}
-        onPaneClick={onPaneClick}
         isValidConnection={isValidConnection}
         nodeTypes={nodeTypes}
         fitView
         nodesDraggable
         nodesConnectable
         elementsSelectable
-        multiSelectionKeyCode={null}
+        selectionOnDrag={false}
+        multiSelectionKeyCode={['Control', 'Meta']}
+        selectionKeyCode={null}
         proOptions={proOptions}
         deleteKeyCode={['Backspace', 'Delete']}
         connectionRadius={28}
