@@ -1,16 +1,21 @@
 {
   "name": "dialogue-editor",
   "private": true,
-  "version": "0.2.0",
+  "version": "1.0.0",
+  "description": "創作者的文化祭｜攤位台詞流程編輯器",
+  "author": "skymiku",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
+    "dev:app": "concurrently -k \"vite --open false\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview --port 4173 --open",
     "test": "vitest run",
     "test:watch": "vitest",
-    "pack": "npm run build && node scripts/pack-release.mjs",
+    "pack": "npm run build && electron-builder --win portable",
+    "pack:web": "npm run build && node scripts/pack-release.mjs",
     "release:gh": "node scripts/gh-release.mjs"
   },
   "dependencies": {
@@ -26,10 +31,48 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "concurrently": "^9.2.1",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
     "jsdom": "^29.1.1",
     "oxlint": "^1.71.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "tw.skymiku.creator-matsuri.dialogue-editor",
+    "productName": "攤位台詞流程編輯器",
+    "copyright": "Copyright © 創作者的文化祭",
+    "directories": {
+      "output": "D:/skymiku/dialogue-editor-release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "docs/給一般使用者.txt",
+        "to": "使用說明.txt"
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "DialogueEditor-${version}-Portable.exe"
+    },
+    "portable": {
+      "artifactName": "DialogueEditor-${version}-Portable.exe"
+    }
   }
 }

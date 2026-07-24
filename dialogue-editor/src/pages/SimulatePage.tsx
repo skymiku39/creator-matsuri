@@ -145,7 +145,7 @@ export function SimulatePage() {
       <div className="rpg-viewport-wrap">
         <div
           className="rpg-viewport"
-          style={{ backgroundImage: 'url(/sim/festival-bg.jpg)' }}
+          style={{ backgroundImage: "url('./sim/festival-bg.jpg')" }}
           role="application"
           aria-label="對話模擬畫面"
         >
