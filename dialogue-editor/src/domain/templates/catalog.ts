@@ -74,25 +74,49 @@ export const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
     name: '兔子茶會 RabbitTeaParty',
     description: '創作者的文化祭攤位01官方範本，含五個選項與超連結。',
     badge: '官方範本',
-    load: () => fromCsv(rabbitCsv, '01攤位'),
+    load: () => {
+      const data = fromCsv(rabbitCsv, '01攤位')
+      return {
+        ...data,
+        meta: { ...data.meta, speakerName: 'Mirai' },
+      }
+    },
   },
   {
     id: 'simple-faq',
     name: '簡易問答',
     description: '兩句開場＋兩個選項，適合快速試作。',
-    load: () => fromCsv(simpleFaqCsv, '02攤位'),
+    load: () => {
+      const data = fromCsv(simpleFaqCsv, '02攤位')
+      return {
+        ...data,
+        meta: { ...data.meta, speakerName: '攤位店員' },
+      }
+    },
   },
   {
     id: 'multi-link',
     name: '多連結導覽',
     description: '選項可開啟外部網址，適合宣傳攤位。',
-    load: () => fromCsv(multiLinkCsv, '03攤位'),
+    load: () => {
+      const data = fromCsv(multiLinkCsv, '03攤位')
+      return {
+        ...data,
+        meta: { ...data.meta, speakerName: '導覽員' },
+      }
+    },
   },
   {
     id: 'blank-start',
     name: '空白起步',
     description: '最小可編輯骨架，自行填寫台詞。',
-    load: () => fromCsv(blankCsv, '04攤位'),
+    load: () => {
+      const data = fromCsv(blankCsv, '04攤位')
+      return {
+        ...data,
+        meta: { ...data.meta, speakerName: 'NPC' },
+      }
+    },
   },
 ]
 

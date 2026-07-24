@@ -32,6 +32,8 @@ export interface BoothMeta {
   boothName: string
   /** 語系欄位名 */
   locale: string
+  /** 模擬畫面說話者名稱（對應 RPG 訊息框上方黃字） */
+  speakerName?: string
 }
 
 export interface DialogueProject {

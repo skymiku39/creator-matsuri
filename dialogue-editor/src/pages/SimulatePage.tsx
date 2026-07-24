@@ -13,6 +13,7 @@ export function SimulatePage() {
   const meta = useDialogueStore((s) => s.meta)
   const nodes = useDialogueStore((s) => s.nodes)
   const edges = useDialogueStore((s) => s.edges)
+  const setMeta = useDialogueStore((s) => s.setMeta)
   const graphKey = useMemo(
     () => JSON.stringify({ meta, nodes, edges }),
     [meta, nodes, edges],
@@ -21,38 +22,72 @@ export function SimulatePage() {
   const [phase, setPhase] = useState<SimPhase>(() =>
     createSimulation(nodes, edges),
   )
-  const [log, setLog] = useState<string[]>([])
+  /** 進入選項時仍顯示上一句台詞（對齊影片：底框＋右上選項同時出現） */
+  const [promptLine, setPromptLine] = useState('')
 
-  // 編輯器變更時同步重置模擬（同一份 store／localStorage）
   useEffect(() => {
-    setPhase(createSimulation(nodes, edges))
-    setLog([])
+    const start = createSimulation(nodes, edges)
+    setPhase(start)
+    setPromptLine(start.type === 'message' ? start.text : '')
   }, [graphKey, nodes, edges])
 
+  const speaker =
+    meta.speakerName?.trim() ||
+    meta.boothName?.replace(/攤位$/, '') ||
+    'NPC'
+
   const restart = () => {
-    setPhase(createSimulation(nodes, edges))
-    setLog([])
+    const start = createSimulation(nodes, edges)
+    setPhase(start)
+    setPromptLine(start.type === 'message' ? start.text : '')
   }
 
   const onAdvance = () => {
     if (phase.type === 'message') {
-      setLog((prev) => [...prev, phase.text])
-    } else if (phase.type === 'url') {
-      setLog((prev) => [...prev, `（連結）${phase.url}`])
+      setPromptLine(phase.text)
     }
-    setPhase(advanceSimulation(phase, nodes, edges))
+    if (phase.type === 'url') {
+      window.open(phase.url, '_blank', 'noopener,noreferrer')
+    }
+    const next = advanceSimulation(phase, nodes, edges)
+    setPhase(next)
   }
 
-  const onPick = (choiceId: string, text: string) => {
-    setLog((prev) => [...prev, `▶ ${text}`])
+  const onPick = (choiceId: string) => {
     setPhase(pickChoice(phase, nodes, edges, choiceId))
   }
 
+  const bottomText =
+    phase.type === 'message'
+      ? phase.text || '（空白台詞）'
+      : phase.type === 'url'
+        ? `請開啟連結：\n${phase.url}`
+        : phase.type === 'choices'
+          ? promptLine || '請選擇右上方的選項……'
+          : phase.type === 'finished'
+            ? phase.reason === 'empty'
+              ? '目前沒有可模擬的流程，請先到編輯器建立台詞。'
+              : '……'
+            : ''
+
+  const canClickMessage =
+    phase.type === 'message' ||
+    phase.type === 'url' ||
+    (phase.type === 'finished' && phase.reason !== 'empty')
+
   return (
-    <div className="page-shell">
+    <div className="page-shell sim-page">
       <div className="top-bar">
         <AppNav />
         <div className="top-bar__actions">
+          <label className="sim-speaker-edit">
+            <span>說話者</span>
+            <input
+              value={meta.speakerName ?? ''}
+              placeholder="Mirai"
+              onChange={(e) => setMeta({ speakerName: e.target.value })}
+            />
+          </label>
           <button type="button" onClick={restart}>
             重新開始
           </button>
@@ -60,91 +95,53 @@ export function SimulatePage() {
         </div>
       </div>
 
-      <main className="page-main simulate">
-        <header className="sim-header">
-          <p className="eyebrow">對話模擬</p>
-          <h1>{meta.boothName || `${meta.boothId}攤位`}</h1>
-          <p className="sim-sync">
-            與編輯器即時同步（共用瀏覽器存檔）。在編輯器改台詞後，此頁會自動重載流程。
-          </p>
-        </header>
+      <div className="rpg-viewport-wrap">
+        <div
+          className="rpg-viewport"
+          style={{ backgroundImage: 'url(/sim/festival-bg.jpg)' }}
+          role="application"
+          aria-label="對話模擬畫面"
+        >
+          <div className="rpg-vignette" aria-hidden />
 
-        <div className="sim-stage">
-          <div className="sim-window">
-            {phase.type === 'message' && (
-              <>
-                <p className="sim-bubble">{phase.text || '（空白台詞）'}</p>
-                {phase.note ? <p className="sim-note">備註：{phase.note}</p> : null}
-                <button type="button" className="sim-primary" onClick={onAdvance}>
-                  下一句
-                </button>
-              </>
-            )}
-
-            {phase.type === 'choices' && (
-              <>
-                <p className="sim-prompt">請選擇：</p>
-                <div className="sim-choices">
-                  {phase.options.map((opt) => (
-                    <button
-                      key={opt.choiceId}
-                      type="button"
-                      onClick={() => onPick(opt.choiceId, opt.text)}
-                    >
-                      <span className="letter">{opt.letter}</span>
-                      {opt.text}
-                      {opt.isReturn ? <em>返回</em> : null}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {phase.type === 'url' && (
-              <>
-                <p className="sim-bubble">開啟連結</p>
-                <a
-                  className="sim-url"
-                  href={phase.url}
-                  target="_blank"
-                  rel="noreferrer"
+          {phase.type === 'choices' && (
+            <div className="rpg-choices" role="menu">
+              {phase.options.map((opt) => (
+                <button
+                  key={opt.choiceId}
+                  type="button"
+                  role="menuitem"
+                  className="rpg-choice"
+                  onClick={() => onPick(opt.choiceId)}
                 >
-                  {phase.url}
-                </a>
-                <button type="button" className="sim-primary" onClick={onAdvance}>
-                  繼續
+                  {opt.text}
                 </button>
-              </>
-            )}
+              ))}
+            </div>
+          )}
 
-            {phase.type === 'finished' && (
-              <>
-                <p className="sim-bubble">
-                  {phase.reason === 'empty'
-                    ? '目前沒有可模擬的流程，請先到編輯器建立台詞。'
-                    : '對話結束。'}
-                </p>
-                <button type="button" className="sim-primary" onClick={restart}>
-                  再玩一次
-                </button>
-              </>
+          <button
+            type="button"
+            className={`rpg-message${canClickMessage ? '' : ' rpg-message--passive'}`}
+            onClick={
+              phase.type === 'finished' && phase.reason !== 'empty'
+                ? restart
+                : canClickMessage
+                  ? onAdvance
+                  : undefined
+            }
+            aria-label={canClickMessage ? '點擊繼續' : '對話內容'}
+          >
+            <div className="rpg-message__name">{speaker}</div>
+            <div className="rpg-message__text">{bottomText}</div>
+            {canClickMessage && (
+              <span className="rpg-message__hint">
+                {phase.type === 'finished' ? '再玩一次 ▼' : '▼'}
+              </span>
             )}
-          </div>
-
-          <aside className="sim-log">
-            <h2>對話紀錄</h2>
-            {log.length === 0 ? (
-              <p className="muted">尚未開始</p>
-            ) : (
-              <ol>
-                {log.map((line, i) => (
-                  <li key={`${i}-${line.slice(0, 12)}`}>{line}</li>
-                ))}
-              </ol>
-            )}
-          </aside>
+          </button>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
