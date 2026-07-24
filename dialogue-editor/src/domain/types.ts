@@ -25,6 +25,14 @@ export interface CsvRow {
   note: string
 }
 
+export interface SimChoiceLayout {
+  /** 選項字母 A–F */
+  letter: string
+  /** 相對視窗左上角百分比 0–100 */
+  xPct: number
+  yPct: number
+}
+
 export interface BoothMeta {
   /** 攤位編號，如 01 */
   boothId: string
@@ -34,6 +42,8 @@ export interface BoothMeta {
   locale: string
   /** 模擬畫面說話者名稱（對應 RPG 訊息框上方黃字） */
   speakerName?: string
+  /** 模擬畫面選項方塊位置（可拖曳儲存） */
+  simChoiceLayouts?: SimChoiceLayout[]
 }
 
 export interface DialogueProject {

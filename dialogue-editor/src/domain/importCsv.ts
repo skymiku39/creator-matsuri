@@ -82,6 +82,7 @@ export function parseCsvText(text: string): ParsedTemplate {
         ...(b.name ? [b.name] : []),
         ...b.contents,
         ...(b.url ? [b.url] : []),
+        ...(b.goto ? [b.goto] : []),
       ]),
     ],
     skippedIds,
@@ -143,6 +144,7 @@ export interface BranchGroup {
   name?: CsvRow
   contents: CsvRow[]
   url?: CsvRow
+  goto?: CsvRow
 }
 
 /** 將平坦列分組成開場訊息與選項分支（供建流程圖） */
@@ -185,6 +187,15 @@ export function groupRows(rows: CsvRow[]): {
       const letter = url[1].toUpperCase()
       const g = branchMap.get(letter) ?? { letter, contents: [] }
       g.url = row
+      branchMap.set(letter, g)
+      continue
+    }
+
+    const gotoRow = row.id.match(/^\d+_([A-F])_Goto$/i)
+    if (gotoRow) {
+      const letter = gotoRow[1].toUpperCase()
+      const g = branchMap.get(letter) ?? { letter, contents: [] }
+      g.goto = row
       branchMap.set(letter, g)
       continue
     }

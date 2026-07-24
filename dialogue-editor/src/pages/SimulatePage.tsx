@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppNav } from '../components/layout/AppNav'
+import { SimChoiceOverlay } from '../components/sim/SimChoiceOverlay'
 import {
   advanceSimulation,
   createSimulation,
@@ -17,8 +18,8 @@ export function SimulatePage() {
   const edges = useDialogueStore((s) => s.edges)
   const setMeta = useDialogueStore((s) => s.setMeta)
   const graphKey = useMemo(
-    () => JSON.stringify({ meta, nodes, edges }),
-    [meta, nodes, edges],
+    () => JSON.stringify({ nodes, edges, boothId: meta.boothId }),
+    [meta.boothId, nodes, edges],
   )
 
   const [session, setSession] = useState<Session>('idle')
@@ -165,21 +166,14 @@ export function SimulatePage() {
             </div>
           )}
 
-          {/* 進行中：選項 */}
+          {/* 進行中：選項（Shift 多選拖曳位置會寫入 meta） */}
           {session === 'active' && phase?.type === 'choices' && (
-            <div className="rpg-choices" role="menu">
-              {phase.options.map((opt) => (
-                <button
-                  key={opt.choiceId}
-                  type="button"
-                  role="menuitem"
-                  className="rpg-choice"
-                  onClick={() => onPick(opt.choiceId)}
-                >
-                  {opt.text}
-                </button>
-              ))}
-            </div>
+            <SimChoiceOverlay
+              options={phase.options}
+              layouts={meta.simChoiceLayouts ?? []}
+              onLayoutsChange={(simChoiceLayouts) => setMeta({ simChoiceLayouts })}
+              onPick={onPick}
+            />
           )}
 
           {/* 進行中：訊息框 */}

@@ -888,19 +888,33 @@
   border-color: rgba(255, 255, 255, 0.45);
 }
 
-/* 右上選項：對齊影片中 RPGMV Show Choices */
-.rpg-choices {
+/* 選項層：可絕對定位／Shift 多選拖曳 */
+.rpg-choices-layer {
   position: absolute;
-  top: 8%;
-  right: 4.5%;
+  inset: 0;
   z-index: 3;
-  display: grid;
-  gap: 0.45rem;
-  width: min(38%, 280px);
+  pointer-events: none;
   animation: picker-in 160ms ease-out;
 }
 
+.rpg-choices-hint {
+  position: absolute;
+  top: 1.5%;
+  right: 3%;
+  margin: 0;
+  padding: 0.2rem 0.45rem;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
 .rpg-choice {
+  position: absolute;
+  pointer-events: auto;
+  width: min(38%, 280px);
   border: 2px solid rgba(255, 255, 255, 0.18);
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.82);
@@ -909,7 +923,9 @@
   line-height: 1.35;
   padding: 0.55rem 0.75rem;
   text-align: center;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
@@ -919,6 +935,19 @@
   border-color: rgba(255, 224, 138, 0.75);
   background: rgba(20, 20, 20, 0.92);
   color: #ffe08a;
+}
+
+.rpg-choice--selected {
+  border-color: rgba(255, 224, 138, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(255, 224, 138, 0.35),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.rpg-choice--dragging {
+  cursor: grabbing;
+  opacity: 0.92;
+  z-index: 4;
 }
 
 /* 底部訊息框：黑底、黃名、白字 */
@@ -1020,16 +1049,14 @@
     aspect-ratio: 16 / 9;
   }
 
-  .rpg-choices {
-    width: min(46%, 240px);
-    top: 6%;
-    right: 3%;
-    gap: 0.35rem;
-  }
-
   .rpg-choice {
+    width: min(46%, 240px);
     padding: 0.45rem 0.55rem;
     font-size: 0.78rem;
+  }
+
+  .rpg-choices-hint {
+    font-size: 0.62rem;
   }
 
   .rpg-message {

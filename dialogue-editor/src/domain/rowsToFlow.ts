@@ -9,7 +9,7 @@ function nid(prefix: string) {
   return `${prefix}_${seq}`
 }
 
-/** 由範本列重建可編輯流程圖 */
+/** 由範本列重建可編輯流程圖（含 *_Goto 跳轉） */
 export function rowsToFlow(parsed: ParsedTemplate): {
   nodes: FlowNode[]
   edges: Edge[]
@@ -18,6 +18,9 @@ export function rowsToFlow(parsed: ParsedTemplate): {
   const { messages, branches } = groupRows(parsed.rows)
   const nodes: FlowNode[] = []
   const edges: Edge[] = []
+
+  /** CSV 鍵 → 節點 id，供 Goto 解析 */
+  const keyToNodeId = new Map<string, string>()
 
   const x0 = 80
   const yStep = 110
@@ -34,6 +37,9 @@ export function rowsToFlow(parsed: ParsedTemplate): {
         note: msg.note,
       }),
     )
+    keyToNodeId.set(msg.id.toUpperCase(), id)
+    const short = msg.id.replace(/^\d+_/, '')
+    keyToNodeId.set(short.toUpperCase(), id)
     if (prevId) {
       edges.push({ id: nid('e'), source: prevId, target: id })
     }
@@ -54,9 +60,13 @@ export function rowsToFlow(parsed: ParsedTemplate): {
       note: '每個選項分支建議包含返回選單的選項',
     }),
   )
+  keyToNodeId.set('MENU', menuId)
   if (prevId) {
     edges.push({ id: nid('e'), source: prevId, target: menuId })
   }
+
+  type PendingGoto = { fromId: string; targetKey: string }
+  const pendingGotos: PendingGoto[] = []
 
   branches.forEach((branch, bi) => {
     const bx = 420 + bi * 280
@@ -94,6 +104,9 @@ export function rowsToFlow(parsed: ParsedTemplate): {
           note: content.note,
         }),
       )
+      keyToNodeId.set(content.id.toUpperCase(), id)
+      const short = content.id.replace(/^\d+_/, '')
+      keyToNodeId.set(short.toUpperCase(), id)
       edges.push({ id: nid('e'), source: last, target: id })
       last = id
       by += yStep
@@ -109,12 +122,16 @@ export function rowsToFlow(parsed: ParsedTemplate): {
           note: branch.url.note,
         }),
       )
+      keyToNodeId.set(branch.url.id.toUpperCase(), id)
       edges.push({ id: nid('e'), source: last, target: id })
       last = id
       by += yStep
     }
 
-    if (isReturn) {
+    const gotoKey = branch.goto?.zh_TW?.trim()
+    if (gotoKey) {
+      pendingGotos.push({ fromId: last, targetKey: gotoKey })
+    } else if (isReturn) {
       const endId = nid('end')
       nodes.push(
         makeNode(endId, bx, by, {
@@ -128,7 +145,27 @@ export function rowsToFlow(parsed: ParsedTemplate): {
     }
   })
 
+  for (const g of pendingGotos) {
+    const targetId = resolveGotoKey(g.targetKey, keyToNodeId)
+    if (targetId) {
+      edges.push({ id: nid('e'), source: g.fromId, target: targetId })
+    }
+  }
+
   return { nodes, edges }
+}
+
+function resolveGotoKey(
+  raw: string,
+  keyToNodeId: Map<string, string>,
+): string | null {
+  const k = raw.trim().toUpperCase()
+  if (keyToNodeId.has(k)) return keyToNodeId.get(k)!
+  // 允許只寫 Msg01 / A_Content01
+  if (keyToNodeId.has(k.replace(/^\d+_/, ''))) {
+    return keyToNodeId.get(k.replace(/^\d+_/, ''))!
+  }
+  return null
 }
 
 function makeNode(

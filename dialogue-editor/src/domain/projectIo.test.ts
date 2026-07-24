@@ -20,7 +20,13 @@ import {
 
 describe('匯入／匯出／存檔完整性', () => {
   it('專案 JSON 序列化後可完整還原 meta 與圖結構', () => {
-    const meta = { boothId: '1', boothName: '測試攤位', locale: 'zh_TW' }
+    const meta = {
+      boothId: '1',
+      boothName: '測試攤位',
+      locale: 'zh_TW',
+      speakerName: 'Mirai',
+      simChoiceLayouts: [{ letter: 'A', xPct: 70, yPct: 12 }],
+    }
     const nodes: FlowNode[] = [
       {
         id: 'msg_1',
@@ -53,6 +59,10 @@ describe('匯入／匯出／存檔完整性', () => {
     const loaded = parseProjectJson(json)
     expect(loaded.meta.boothId).toBe('01')
     expect(loaded.meta.boothName).toBe('測試攤位')
+    expect(loaded.meta.speakerName).toBe('Mirai')
+    expect(loaded.meta.simChoiceLayouts).toEqual([
+      { letter: 'A', xPct: 70, yPct: 12 },
+    ])
     expect(loaded.nodes).toHaveLength(2)
     expect(loaded.edges).toHaveLength(1)
     expect((loaded.nodes[0] as FlowNode).data.text).toBe('「你好」')

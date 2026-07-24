@@ -151,6 +151,94 @@ describe('flowToCsvRows', () => {
     expect(csv).toContain('編號,說明,zh_TW,備註')
   })
 
+  it('接到開場對話時輸出 *_Goto，不重複寫入 Content', () => {
+    const nodes: FlowNode[] = [
+      {
+        id: 'm1',
+        type: 'message',
+        position: { x: 0, y: 0 },
+        data: { kind: 'message', title: '開場', text: '你好', note: '' },
+      },
+      {
+        id: 'menu',
+        type: 'choiceMenu',
+        position: { x: 0, y: 100 },
+        data: { kind: 'choiceMenu', title: '選單', text: '', note: '' },
+      },
+      {
+        id: 'cA',
+        type: 'choice',
+        position: { x: 200, y: 0 },
+        data: {
+          kind: 'choice',
+          title: 'A',
+          text: '再說一次',
+          note: '',
+        },
+      },
+      {
+        id: 'cB',
+        type: 'choice',
+        position: { x: 400, y: 0 },
+        data: {
+          kind: 'choice',
+          title: 'B',
+          text: '回到選單',
+          note: '返回選項',
+          isReturn: true,
+        },
+      },
+    ]
+    const edges: Edge[] = [
+      { id: 'e1', source: 'm1', target: 'menu' },
+      { id: 'e2', source: 'menu', target: 'cA', sourceHandle: 'opt-A' },
+      { id: 'e3', source: 'cA', target: 'm1' },
+      { id: 'e4', source: 'menu', target: 'cB', sourceHandle: 'opt-B' },
+      { id: 'e5', source: 'cB', target: 'menu' },
+    ]
+    const rows = flowToCsvRows(meta, nodes, edges)
+    expect(rows.map((r) => r.id)).toEqual([
+      '01_Msg01',
+      '01_A_Name',
+      '01_A_Goto',
+      '01_B_Name',
+      '01_B_Goto',
+    ])
+    expect(rows.find((r) => r.id === '01_A_Goto')?.zh_TW).toBe('01_Msg01')
+    expect(rows.find((r) => r.id === '01_B_Goto')?.zh_TW).toBe('MENU')
+  })
+
+  it('Goto 可 roundtrip 重建連線', () => {
+    const text = `編號,說明,zh_TW,備註
+01_Msg01,開場,你好,
+01_A_Name,選項A文字,再說一次,
+01_A_Goto,選項A跳轉,01_Msg01,接到既有對話
+01_B_Name,選項B文字,回到選單,返回選項
+01_B_Goto,選項B跳轉,MENU,回到選單
+`
+    const parsed = parseCsvText(text)
+    const flow = rowsToFlow(parsed)
+    const again = flowToCsvRows(
+      {
+        boothId: parsed.boothId,
+        boothName: parsed.boothName,
+        locale: parsed.locale,
+      },
+      flow.nodes,
+      flow.edges,
+    )
+    expect(again.find((r) => r.id === '01_A_Goto')?.zh_TW).toBe('01_Msg01')
+    expect(again.find((r) => r.id === '01_B_Goto')?.zh_TW).toBe('MENU')
+    // A 應連回開場訊息
+    const menu = flow.nodes.find((n) => n.data.kind === 'choiceMenu')!
+    const choiceA = flow.edges.find(
+      (e) => e.source === menu.id && e.sourceHandle === 'opt-A',
+    )!.target
+    const jumpTarget = flow.edges.find((e) => e.source === choiceA)!.target
+    const opening = flow.nodes.find((n) => n.data.kind === 'message')!
+    expect(jumpTarget).toBe(opening.id)
+  })
+
   it('成環時不會無限迴圈', () => {
     const nodes: FlowNode[] = [
       {

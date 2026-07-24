@@ -44,6 +44,27 @@ export function parseProjectJson(text: string): DialogueProject {
       boothId: normalizeBoothId(v.meta.boothId),
       boothName: String(v.meta.boothName ?? ''),
       locale: String(v.meta.locale ?? 'zh_TW'),
+      ...(v.meta.speakerName != null
+        ? { speakerName: String(v.meta.speakerName) }
+        : {}),
+      ...(Array.isArray(v.meta.simChoiceLayouts)
+        ? {
+            simChoiceLayouts: v.meta.simChoiceLayouts
+              .filter(
+                (l): l is { letter: string; xPct: number; yPct: number } =>
+                  Boolean(l) &&
+                  typeof l === 'object' &&
+                  typeof (l as { letter?: unknown }).letter === 'string' &&
+                  typeof (l as { xPct?: unknown }).xPct === 'number' &&
+                  typeof (l as { yPct?: unknown }).yPct === 'number',
+              )
+              .map((l) => ({
+                letter: String(l.letter).toUpperCase(),
+                xPct: l.xPct,
+                yPct: l.yPct,
+              })),
+          }
+        : {}),
     },
     nodes: v.nodes,
     edges: v.edges,

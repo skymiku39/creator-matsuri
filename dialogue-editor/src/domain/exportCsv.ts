@@ -71,14 +71,22 @@ export function findStartMessages(
   return { messages, choiceMenu, cycle }
 }
 
+/**
+ * 沿分支往下走。若接到「已屬於他處」的節點（開場、選單、其他分支內容），記為 jump（CSV 的 *_Goto）。
+ * claimedIds：開場訊息 + 先前分支已匯出的內容／連結／選項節點。
+ */
 function walkLinearBranch(
   start: FlowNode,
   edges: FlowEdge[],
   nodesById: Map<string, FlowNode>,
+  claimedIds: Set<string>,
+  menuId: string | null,
 ): {
   messages: FlowNode[]
   url: FlowNode | null
   end: FlowNode | null
+  /** 跳到既有對話／選單（非本分支獨有內容） */
+  jump: FlowNode | null
   cycle: boolean
   visited: Set<string>
 } {
@@ -86,6 +94,7 @@ function walkLinearBranch(
   const visited = new Set<string>()
   let url: FlowNode | null = null
   let end: FlowNode | null = null
+  let jump: FlowNode | null = null
   let cursor: FlowNode | null = start
   let cycle = false
 
@@ -102,6 +111,17 @@ function walkLinearBranch(
     visited.add(cursor.id)
 
     const kind = dataOf(cursor).kind
+
+    // 接到選單／已匯出節點 → Goto，不重複寫入 Content
+    if (kind === 'choiceMenu' || (menuId && cursor.id === menuId)) {
+      jump = cursor
+      break
+    }
+    if (claimedIds.has(cursor.id)) {
+      jump = cursor
+      break
+    }
+
     if (kind === 'message') {
       messages.push(cursor)
       cursor = childrenOf(cursor.id, edges, nodesById)[0] ?? null
@@ -116,10 +136,15 @@ function walkLinearBranch(
       end = cursor
       break
     }
+    // 接到其他 choice 等：視為跳轉
+    if (kind === 'choice') {
+      jump = cursor
+      break
+    }
     break
   }
 
-  return { messages, url, end, cycle, visited }
+  return { messages, url, end, jump, cycle, visited }
 }
 
 /** 從開場主幹與各選項分支收集可匯出的節點 id */
@@ -134,23 +159,90 @@ export function collectExportableIds(
     edges,
   )
   let cycle = openCycle
+  const openingIds = new Set(messages.map((m) => m.id))
 
   for (const m of messages) ids.add(m.id)
   if (!choiceMenu) return { ids, cycle }
 
   ids.add(choiceMenu.id)
+  const claimedIds = new Set(openingIds)
   const choiceEdges = edges.filter((e) => e.source === choiceMenu.id)
 
   for (const edge of choiceEdges) {
     const choiceNode = nodesById.get(edge.target)
     if (!choiceNode) continue
     ids.add(choiceNode.id)
-    const branch = walkLinearBranch(choiceNode, edges, nodesById)
+    claimedIds.add(choiceNode.id)
+    const branch = walkLinearBranch(
+      choiceNode,
+      edges,
+      nodesById,
+      claimedIds,
+      choiceMenu.id,
+    )
     if (branch.cycle) cycle = true
     for (const id of branch.visited) ids.add(id)
+    if (branch.jump) ids.add(branch.jump.id)
+    for (const m of branch.messages) claimedIds.add(m.id)
+    if (branch.url) claimedIds.add(branch.url.id)
   }
 
   return { ids, cycle }
+}
+
+function buildNodeKeyMap(
+  booth: string,
+  messages: FlowNode[],
+  choiceMenu: FlowNode | null,
+  edges: FlowEdge[],
+  nodesById: Map<string, FlowNode>,
+): Map<string, string> {
+  const map = new Map<string, string>()
+  messages.forEach((node, i) => {
+    map.set(node.id, `${booth}_Msg${String(i + 1).padStart(2, '0')}`)
+  })
+  if (choiceMenu) {
+    map.set(choiceMenu.id, 'MENU')
+    const claimedIds = new Set(messages.map((m) => m.id))
+    const choiceEdges = edges
+      .filter((e) => e.source === choiceMenu.id)
+      .sort((a, b) =>
+        (a.sourceHandle ?? a.id).localeCompare(b.sourceHandle ?? b.id),
+      )
+    const used = new Set<string>()
+    choiceEdges.forEach((edge, index) => {
+      const choiceNode = nodesById.get(edge.target)
+      if (!choiceNode || dataOf(choiceNode).kind !== 'choice') return
+      const fromHandle = edge.sourceHandle?.match(/^opt-([A-F])$/i)?.[1]
+      const letter =
+        (fromHandle?.toUpperCase() as (typeof CHOICE_LETTERS)[number] | undefined) ??
+        CHOICE_LETTERS.find((l) => !used.has(l)) ??
+        CHOICE_LETTERS[index]
+      if (!letter || used.has(letter)) return
+      used.add(letter)
+      map.set(choiceNode.id, `${booth}_${letter}_Name`)
+      claimedIds.add(choiceNode.id)
+      const branch = walkLinearBranch(
+        choiceNode,
+        edges,
+        nodesById,
+        claimedIds,
+        choiceMenu.id,
+      )
+      branch.messages.forEach((msg, i) => {
+        map.set(
+          msg.id,
+          `${booth}_${letter}_Content${String(i + 1).padStart(2, '0')}`,
+        )
+        claimedIds.add(msg.id)
+      })
+      if (branch.url) {
+        map.set(branch.url.id, `${booth}_${letter}_URL`)
+        claimedIds.add(branch.url.id)
+      }
+    })
+  }
+  return map
 }
 
 /** 將流程圖轉成範本用的 CSV 列（編號／說明／zh_TW／備註） */
@@ -164,6 +256,7 @@ export function flowToCsvRows(
   const rows: CsvRow[] = []
 
   const { messages, choiceMenu } = findStartMessages(nodes, edges)
+  const keyMap = buildNodeKeyMap(booth, messages, choiceMenu, edges, nodesById)
 
   messages.forEach((node, i) => {
     const n = i + 1
@@ -180,6 +273,7 @@ export function flowToCsvRows(
     return rows
   }
 
+  const claimedIds = new Set(messages.map((m) => m.id))
   const choiceEdges = edges
     .filter((e) => e.source === choiceMenu.id)
     .sort((a, b) => {
@@ -209,8 +303,15 @@ export function flowToCsvRows(
       zh_TW: d.text,
       note: d.note,
     })
+    claimedIds.add(choiceNode.id)
 
-    const branch = walkLinearBranch(choiceNode, edges, nodesById)
+    const branch = walkLinearBranch(
+      choiceNode,
+      edges,
+      nodesById,
+      claimedIds,
+      choiceMenu.id,
+    )
     branch.messages.forEach((msg, i) => {
       const md = dataOf(msg)
       const n = i + 1
@@ -220,6 +321,7 @@ export function flowToCsvRows(
         zh_TW: md.text,
         note: md.note,
       })
+      claimedIds.add(msg.id)
     })
 
     if (branch.url) {
@@ -229,6 +331,19 @@ export function flowToCsvRows(
         description: `選項${letter}連結`,
         zh_TW: ud.text,
         note: ud.note,
+      })
+      claimedIds.add(branch.url.id)
+    }
+
+    if (branch.jump) {
+      const targetKey =
+        keyMap.get(branch.jump.id) ??
+        (dataOf(branch.jump).kind === 'choiceMenu' ? 'MENU' : branch.jump.id)
+      rows.push({
+        id: `${booth}_${letter}_Goto`,
+        description: `選項${letter}跳轉`,
+        zh_TW: targetKey,
+        note: '接到既有對話／選單（非結束）。MENU＝回到選項選單',
       })
     }
   })
