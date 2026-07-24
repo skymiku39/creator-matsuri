@@ -18,53 +18,37 @@ export function outgoingEdges(nodeId: string, edges: Edge[]): Edge[] {
 }
 
 /**
- * 兩點之間的最短路徑（邊視為無向）。
- * 找不到連通時回傳 null。
+ * 同一條單線對話串上，兩點之間的閉區間（含起點、終點；順序可對調）。
+ * 兩點不在同一單線上時回傳 null。
  */
-export function shortestNodePath(
+export function linearSegmentInterval(
   fromId: string,
   toId: string,
+  nodes: FlowNode[],
   edges: Edge[],
 ): string[] | null {
   if (fromId === toId) return [fromId]
 
-  const adj = new Map<string, string[]>()
-  const link = (a: string, b: string) => {
-    const list = adj.get(a)
-    if (list) list.push(b)
-    else adj.set(a, [b])
-  }
-  for (const e of edges) {
-    link(e.source, e.target)
-    link(e.target, e.source)
+  let segment = expandLinearSegment(fromId, nodes, edges)
+  let i = segment.indexOf(fromId)
+  let j = segment.indexOf(toId)
+
+  // 若終點不在「起點那條線」上，改試終點那條線（例如開場↔選單）
+  if (j < 0) {
+    segment = expandLinearSegment(toId, nodes, edges)
+    i = segment.indexOf(fromId)
+    j = segment.indexOf(toId)
   }
 
-  const prev = new Map<string, string | null>([[fromId, null]])
-  const queue = [fromId]
-  while (queue.length > 0) {
-    const cur = queue.shift()!
-    for (const next of adj.get(cur) ?? []) {
-      if (prev.has(next)) continue
-      prev.set(next, cur)
-      if (next === toId) {
-        const path: string[] = []
-        let walk: string | null = toId
-        while (walk) {
-          path.push(walk)
-          walk = prev.get(walk) ?? null
-        }
-        path.reverse()
-        return path
-      }
-      queue.push(next)
-    }
-  }
-  return null
+  if (i < 0 || j < 0) return null
+  const lo = Math.min(i, j)
+  const hi = Math.max(i, j)
+  return segment.slice(lo, hi + 1)
 }
 
 /**
  * 以 nodeId 為中心，沿「唯一前驅／唯一後繼」擴展最大線性片段。
- * （保留供驗證／其他用途；Shift 選取改用 shortestNodePath）
+ * 碰到選單多出口或分叉／匯合即停；選單本身可作為錨點被納入。
  */
 export function expandLinearSegment(
   nodeId: string,

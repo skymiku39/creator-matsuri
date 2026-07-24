@@ -33,7 +33,7 @@ export function TutorialPage() {
             <li>選單右側 A～F 對應選項字母</li>
             <li>
               <kbd>Ctrl</kbd> 點選可多選；
-              <kbd>Shift</kbd> 先點起點、再點終點，會選取兩點間最短路徑上的節點；拖曳可移動
+              <kbd>Shift</kbd> 先點起點、再點終點，會選取同一條單線上兩點之間的節點（含兩端）；不同線則改以第二點為新起點；拖曳可移動
             </li>
             <li>
               <kbd>Ctrl</kbd>+<kbd>C</kbd>／<kbd>V</kbd> 複製貼上選取節點

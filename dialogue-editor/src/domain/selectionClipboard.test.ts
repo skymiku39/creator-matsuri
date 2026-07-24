@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Edge } from '@xyflow/react'
-import { expandLinearSegment, shortestNodePath } from './linearSegment'
+import { expandLinearSegment, linearSegmentInterval } from './linearSegment'
 import {
   captureSelection,
   pasteSelectionDuplicate,
@@ -65,28 +65,36 @@ function sample(): { nodes: FlowNode[]; edges: Edge[] } {
   return { nodes, edges }
 }
 
-describe('shortestNodePath', () => {
-  it('路徑一定包含起點與終點', () => {
-    const { edges } = sample()
-    const path = shortestNodePath('m1', 'a1', edges)
-    expect(path).toEqual(['m1', 'm2', 'menu', 'cA', 'a1'])
-    expect(path![0]).toBe('m1')
-    expect(path![path!.length - 1]).toBe('a1')
+describe('linearSegmentInterval', () => {
+  it('同線閉區間含起點終點，順序可對調', () => {
+    const { nodes, edges } = sample()
+    expect(linearSegmentInterval('cA', 'a1', nodes, edges)).toEqual([
+      'cA',
+      'a1',
+    ])
+    expect(linearSegmentInterval('a1', 'cA', nodes, edges)).toEqual([
+      'cA',
+      'a1',
+    ])
+    expect(linearSegmentInterval('m1', 'm2', nodes, edges)).toEqual([
+      'm1',
+      'm2',
+    ])
   })
 
-  it('選取兩點間最短路徑，不含其他分支', () => {
-    const { edges } = sample()
-    expect(shortestNodePath('cA', 'a1', edges)).toEqual(['cA', 'a1'])
-    expect(shortestNodePath('m1', 'm2', edges)).toEqual(['m1', 'm2'])
-    // 跨選單到選項：m2-menu-cA，不會吃到 cB / b1
-    expect(shortestNodePath('m2', 'cA', edges)).toEqual(['m2', 'menu', 'cA'])
-    expect(shortestNodePath('cA', 'cB', edges)).toEqual(['cA', 'menu', 'cB'])
+  it('開場與選單可視為同線區間', () => {
+    const { nodes, edges } = sample()
+    expect(linearSegmentInterval('m1', 'menu', nodes, edges)).toEqual([
+      'm1',
+      'm2',
+      'menu',
+    ])
   })
 
-  it('不相連回傳 null', () => {
-    expect(
-      shortestNodePath('a', 'b', [{ id: 'e', source: 'x', target: 'y' }]),
-    ).toBeNull()
+  it('跨不同選項分支則失敗', () => {
+    const { nodes, edges } = sample()
+    expect(linearSegmentInterval('cA', 'cB', nodes, edges)).toBeNull()
+    expect(linearSegmentInterval('a1', 'b1', nodes, edges)).toBeNull()
   })
 })
 

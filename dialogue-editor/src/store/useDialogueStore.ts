@@ -27,7 +27,7 @@ import {
   type SelectionClipboard,
 } from '../domain/selectionClipboard'
 import { setIncomingLink, setOutgoingLink } from '../domain/linkEdit'
-import { shortestNodePath } from '../domain/linearSegment'
+import { linearSegmentInterval } from '../domain/linearSegment'
 
 export { nextId, syncIdCounterFromGraph } from './idFactory'
 
@@ -213,7 +213,7 @@ interface DialogueState {
   /** Shift 範圍選取的第一個方塊 */
   shiftAnchorId: string | null
   /**
-   * Shift 最短路徑選取結果（含起點與終點）。
+   * Shift 同線區間選取結果（含起點與終點）。
    * 鎖定期間忽略 React Flow 的單點 select，避免只剩終點被選。
    */
   shiftPathIds: string[] | null
@@ -227,8 +227,8 @@ interface DialogueState {
   select: (id: string | null) => void
   clearShiftAnchor: () => void
   /**
-   * Shift：第一次點＝起點；第二次點＝終點，
-   * 選取兩點最短路徑上的全部節點（含起點、終點）。
+   * Shift：第一次點＝起點；第二次點＝終點。
+   * 僅在同一條單線對話串上選取閉區間（含兩端）；否則改以第二點為新起點。
    */
   selectShiftRange: (nodeId: string) => void
   updateNodeData: (id: string, patch: Partial<DialogueNodeData>) => void
@@ -349,8 +349,14 @@ export const useDialogueStore = create<DialogueState>()(
           return
         }
 
-        const path = shortestNodePath(shiftAnchorId, nodeId, edges)
-        if (!path || path.length === 0) {
+        const interval = linearSegmentInterval(
+          shiftAnchorId,
+          nodeId,
+          nodes,
+          edges,
+        )
+        if (!interval || interval.length === 0) {
+          // 不在同一單線：改以新點當起點
           const fallback = [nodeId]
           set({
             shiftAnchorId: nodeId,
@@ -361,16 +367,10 @@ export const useDialogueStore = create<DialogueState>()(
           return
         }
 
-        // 保證含起點與終點
-        const ids = [...path]
-        if (ids[0] !== shiftAnchorId) ids.unshift(shiftAnchorId)
-        if (ids[ids.length - 1] !== nodeId) ids.push(nodeId)
-        const unique = [...new Set(ids)]
-
         set({
-          shiftPathIds: unique,
+          shiftPathIds: interval,
           selectedId: nodeId,
-          nodes: withSelection(nodes, new Set(unique)),
+          nodes: withSelection(nodes, new Set(interval)),
         })
       },
 
