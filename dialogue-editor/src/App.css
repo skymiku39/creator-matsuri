@@ -495,6 +495,341 @@
   font-family: inherit;
 }
 
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 1.2rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.app-nav__link {
+  text-decoration: none;
+  color: var(--muted);
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
+}
+
+.app-nav__link.active {
+  background: rgba(180, 35, 24, 0.12);
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
+.top-bar__actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.top-bar__actions a {
+  color: var(--teal);
+  font-size: 0.88rem;
+}
+
+.top-bar__actions button {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.35rem 0.7rem;
+}
+
+.page-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.page-main {
+  padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 3rem;
+  max-width: 980px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.page-hero {
+  margin-bottom: 1.8rem;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent-deep);
+  font-family: Fraunces, 'Noto Sans TC', serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.page-hero h1,
+.sim-header h1 {
+  margin: 0.2rem 0 0.4rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.tutorial section {
+  margin-bottom: 1.5rem;
+}
+
+.tutorial h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.tutorial ul,
+.tutorial ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--ink);
+}
+
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.doc-table th,
+.doc-table td {
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+}
+
+.page-cta {
+  margin-top: 2rem;
+}
+
+.primary-link {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(28, 36, 33, 0.35);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal-panel {
+  width: min(640px, 100%);
+  max-height: min(80vh, 720px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.modal-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-panel__head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-panel__close {
+  border: 0;
+  background: transparent;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.modal-panel__lead {
+  margin: 0.4rem 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.template-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.template-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+}
+
+.template-card:hover {
+  border-color: rgba(47, 111, 94, 0.4);
+  background: rgba(47, 111, 94, 0.05);
+}
+
+.template-card__title {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.template-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.badge {
+  font-size: 0.68rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(180, 35, 24, 0.12);
+  color: var(--accent-deep);
+}
+
+.simulate {
+  max-width: 1080px;
+}
+
+.sim-sync {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.sim-stage {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.sim-window {
+  min-height: 320px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(232, 238, 233, 0.95)),
+    radial-gradient(circle at 80% 0%, rgba(180, 35, 24, 0.08), transparent 40%);
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: var(--shadow);
+}
+
+.sim-bubble {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.sim-note,
+.sim-prompt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.sim-primary {
+  align-self: flex-start;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.sim-choices {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.sim-choices button {
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sim-choices button:hover {
+  border-color: rgba(29, 78, 137, 0.35);
+}
+
+.sim-choices .letter {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: rgba(29, 78, 137, 0.12);
+  color: var(--blue);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.sim-choices em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.sim-url {
+  color: var(--teal);
+  word-break: break-all;
+}
+
+.sim-log {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.9rem 1rem;
+}
+
+.sim-log h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.sim-log .muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.sim-log ol {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.86rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
 @media (max-width: 960px) {
   .toolbar {
     grid-template-columns: 1fr;
@@ -517,5 +852,9 @@
 
   .canvas-wrap {
     min-height: 55vh;
+  }
+
+  .sim-stage {
+    grid-template-columns: 1fr;
   }
 }

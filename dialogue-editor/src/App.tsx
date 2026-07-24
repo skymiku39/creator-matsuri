@@ -1,22 +1,19 @@
-import { ReactFlowProvider } from '@xyflow/react'
-import { FlowCanvas } from './components/FlowCanvas'
-import { Inspector } from './components/Inspector'
-import { Toolbar } from './components/Toolbar'
-import { Toolbox } from './components/Toolbox'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { EditorPage } from './pages/EditorPage'
+import { TutorialPage } from './pages/TutorialPage'
+import { SimulatePage } from './pages/SimulatePage'
 import './App.css'
 
 function App() {
   return (
-    <ReactFlowProvider>
-      <div className="app-shell">
-        <Toolbar />
-        <div className="workspace">
-          <Toolbox />
-          <FlowCanvas />
-          <Inspector />
-        </div>
-      </div>
-    </ReactFlowProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<EditorPage />} />
+        <Route path="/tutorial" element={<TutorialPage />} />
+        <Route path="/simulate" element={<SimulatePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
