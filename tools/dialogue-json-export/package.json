@@ -1,0 +1,18 @@
+{
+  "name": "dialogue-json-export",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "將攤位台詞 JSON 反編成純文字與不重疊流程圖",
+  "bin": {
+    "dialogue-json-export": "./src/cli.mjs"
+  },
+  "scripts": {
+    "export": "node src/cli.mjs",
+    "test": "node src/cli.mjs ../../dialogue-editor/src/domain/templates/simpleFaq.json"
+  },
+  "dependencies": {
+    "@viz-js/viz": "^3.24.0",
+    "sharp": "^0.34.5"
+  }
+}
