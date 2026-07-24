@@ -212,6 +212,11 @@ interface DialogueState {
   selectedId: string | null
   /** Shift 範圍選取的第一個方塊 */
   shiftAnchorId: string | null
+  /**
+   * Shift 最短路徑選取結果（含起點與終點）。
+   * 鎖定期間忽略 React Flow 的單點 select，避免只剩終點被選。
+   */
+  shiftPathIds: string[] | null
   /** Ctrl+C 暫存；不寫入 localStorage */
   clipboard: SelectionClipboard | null
   connectPicker: ConnectPickerState | null
@@ -222,7 +227,8 @@ interface DialogueState {
   select: (id: string | null) => void
   clearShiftAnchor: () => void
   /**
-   * Shift：第一次點＝起點；第二次點＝終點，選取兩點最短路徑上的節點。
+   * Shift：第一次點＝起點；第二次點＝終點，
+   * 選取兩點最短路徑上的全部節點（含起點、終點）。
    */
   selectShiftRange: (nodeId: string) => void
   updateNodeData: (id: string, patch: Partial<DialogueNodeData>) => void
@@ -257,6 +263,7 @@ export const useDialogueStore = create<DialogueState>()(
       edges: initial.edges,
       selectedId: null,
       shiftAnchorId: null,
+      shiftPathIds: null,
       clipboard: null,
       connectPicker: null,
 
@@ -274,8 +281,19 @@ export const useDialogueStore = create<DialogueState>()(
       },
 
       onNodesChange: (changes) => {
-        const nodes = applyNodeChanges(changes, get().nodes) as FlowNode[]
-        const selectedFromRf = nodes.find((n) => n.selected)?.id ?? null
+        const locked = get().shiftPathIds
+        // 鎖定路徑選取時，丟掉 RF 的 select 變更，避免只剩終點
+        const applied = locked
+          ? changes.filter((c) => c.type !== 'select')
+          : changes
+        let nodes = applyNodeChanges(applied, get().nodes) as FlowNode[]
+        if (locked && locked.length > 0) {
+          nodes = withSelection(nodes, new Set(locked))
+        }
+        const selectedFromRf =
+          locked?.[locked.length - 1] ??
+          nodes.find((n) => n.selected)?.id ??
+          null
         set({ nodes, selectedId: selectedFromRf })
       },
 
@@ -309,16 +327,22 @@ export const useDialogueStore = create<DialogueState>()(
         set({
           selectedId: id,
           shiftAnchorId: null,
+          shiftPathIds: null,
           nodes: withSelection(get().nodes, id),
         }),
 
-      clearShiftAnchor: () => set({ shiftAnchorId: null }),
+      clearShiftAnchor: () =>
+        set({ shiftAnchorId: null, shiftPathIds: null }),
 
       selectShiftRange: (nodeId) => {
         const { nodes, edges, shiftAnchorId } = get()
+
+        // 第一次：只選起點
         if (!shiftAnchorId || shiftAnchorId === nodeId) {
+          const path = [nodeId]
           set({
             shiftAnchorId: nodeId,
+            shiftPathIds: path,
             selectedId: nodeId,
             nodes: withSelection(nodes, nodeId),
           })
@@ -326,20 +350,27 @@ export const useDialogueStore = create<DialogueState>()(
         }
 
         const path = shortestNodePath(shiftAnchorId, nodeId, edges)
-        if (!path) {
-          // 不相連：改以新點作為起點
+        if (!path || path.length === 0) {
+          const fallback = [nodeId]
           set({
             shiftAnchorId: nodeId,
+            shiftPathIds: fallback,
             selectedId: nodeId,
             nodes: withSelection(nodes, nodeId),
           })
           return
         }
 
+        // 保證含起點與終點
+        const ids = [...path]
+        if (ids[0] !== shiftAnchorId) ids.unshift(shiftAnchorId)
+        if (ids[ids.length - 1] !== nodeId) ids.push(nodeId)
+        const unique = [...new Set(ids)]
+
         set({
+          shiftPathIds: unique,
           selectedId: nodeId,
-          nodes: withSelection(nodes, new Set(path)),
-          // 起點固定，方便再 Shift 點第三點時仍相對第一點算最短路
+          nodes: withSelection(nodes, new Set(unique)),
         })
       },
 
@@ -401,6 +432,7 @@ export const useDialogueStore = create<DialogueState>()(
           connectPicker: null,
           clipboard: null,
           shiftAnchorId: null,
+          shiftPathIds: null,
         })
       },
 
@@ -415,6 +447,7 @@ export const useDialogueStore = create<DialogueState>()(
           connectPicker: null,
           clipboard: null,
           shiftAnchorId: null,
+          shiftPathIds: null,
         })
       },
 
@@ -489,6 +522,7 @@ export const useDialogueStore = create<DialogueState>()(
           connectPicker: null,
           clipboard: null,
           shiftAnchorId: null,
+          shiftPathIds: null,
         })
         return true
       },

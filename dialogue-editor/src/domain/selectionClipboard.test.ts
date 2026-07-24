@@ -66,6 +66,14 @@ function sample(): { nodes: FlowNode[]; edges: Edge[] } {
 }
 
 describe('shortestNodePath', () => {
+  it('路徑一定包含起點與終點', () => {
+    const { edges } = sample()
+    const path = shortestNodePath('m1', 'a1', edges)
+    expect(path).toEqual(['m1', 'm2', 'menu', 'cA', 'a1'])
+    expect(path![0]).toBe('m1')
+    expect(path![path!.length - 1]).toBe('a1')
+  })
+
   it('選取兩點間最短路徑，不含其他分支', () => {
     const { edges } = sample()
     expect(shortestNodePath('cA', 'a1', edges)).toEqual(['cA', 'a1'])

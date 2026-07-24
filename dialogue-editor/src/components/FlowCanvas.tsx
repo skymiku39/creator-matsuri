@@ -116,7 +116,7 @@ export function FlowCanvas() {
     <div className="canvas-wrap">
       <div className="canvas-hint" role="note">
         <kbd>Ctrl</kbd> 多選　
-        <kbd>Shift</kbd> 點兩下選最短路徑
+        <kbd>Shift</kbd> 起點→終點（最短路徑全選）
         {shiftAnchorId ? '（已有起點，再點終點）' : ''}
         　拖曳移動　
         <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 複製貼上
