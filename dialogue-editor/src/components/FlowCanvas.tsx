@@ -28,6 +28,17 @@ const nodeTypes: NodeTypes = {
   end: EndNode,
 }
 
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  const tag = target.tagName
+  return (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SELECT' ||
+    target.isContentEditable
+  )
+}
+
 export function FlowCanvas() {
   const nodes = useDialogueStore((s) => s.nodes)
   const edges = useDialogueStore((s) => s.edges)
@@ -39,6 +50,9 @@ export function FlowCanvas() {
   const clearShiftAnchor = useDialogueStore((s) => s.clearShiftAnchor)
   const copySelection = useDialogueStore((s) => s.copySelection)
   const pasteClipboard = useDialogueStore((s) => s.pasteClipboard)
+  const beginNodeDrag = useDialogueStore((s) => s.beginNodeDrag)
+  const undo = useDialogueStore((s) => s.undo)
+  const redo = useDialogueStore((s) => s.redo)
   const shiftAnchorId = useDialogueStore((s) => s.shiftAnchorId)
 
   const onSelectionChange = useCallback(
@@ -51,7 +65,6 @@ export function FlowCanvas() {
 
   const onNodeClick = useCallback(
     (event: MouseEvent, node: Node) => {
-      // Ctrl／Cmd：交給 React Flow 多選；Shift：同線起點～終點區間
       if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
         event.preventDefault()
         event.stopPropagation()
@@ -69,31 +82,31 @@ export function FlowCanvas() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
-      ) {
-        return
-      }
       const mod = e.ctrlKey || e.metaKey
       if (!mod) return
-      if (e.key === 'c' || e.key === 'C') {
-        if (copySelection()) {
-          e.preventDefault()
-        }
+
+      const key = e.key.toLowerCase()
+      if (key === 'z' && !e.shiftKey) {
+        if (undo()) e.preventDefault()
+        return
       }
-      if (e.key === 'v' || e.key === 'V') {
-        if (pasteClipboard()) {
-          e.preventDefault()
-        }
+      if (key === 'y' || (key === 'z' && e.shiftKey)) {
+        if (redo()) e.preventDefault()
+        return
+      }
+
+      if (isTypingTarget(e.target)) return
+
+      if (key === 'c') {
+        if (copySelection()) e.preventDefault()
+      }
+      if (key === 'v') {
+        if (pasteClipboard()) e.preventDefault()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [copySelection, pasteClipboard])
+  }, [copySelection, pasteClipboard, undo, redo])
 
   const isValidConnection = useCallback(
     (connection: Connection | { source: string | null; target: string | null }) => {
@@ -118,8 +131,9 @@ export function FlowCanvas() {
         <kbd>Ctrl</kbd> 多選　
         <kbd>Shift</kbd> 同線起點→終點
         {shiftAnchorId ? '（已有起點，再點終點）' : ''}
-        　拖曳移動　
-        <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 複製貼上
+        　
+        <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd> 復原重做　
+        <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 複製
         {clipboard ? `　（已複製 ${clipboard.nodes.length} 個）` : ''}
         {selectedCount > 1 ? `　已選 ${selectedCount}` : ''}
       </div>
@@ -132,6 +146,7 @@ export function FlowCanvas() {
         onSelectionChange={onSelectionChange}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
+        onNodeDragStart={() => beginNodeDrag()}
         isValidConnection={isValidConnection}
         nodeTypes={nodeTypes}
         fitView

@@ -28,8 +28,24 @@ import {
 } from '../domain/selectionClipboard'
 import { setIncomingLink, setOutgoingLink } from '../domain/linkEdit'
 import { linearSegmentInterval } from '../domain/linearSegment'
+import {
+  clearHistory,
+  commitDebounced,
+  commitNow,
+  redo as historyRedo,
+  takeSnapshot,
+  undo as historyUndo,
+} from './editHistory'
 
 export { nextId, syncIdCounterFromGraph } from './idFactory'
+
+function currentSnapshot(state: {
+  meta: BoothMeta
+  nodes: FlowNode[]
+  edges: Edge[]
+}) {
+  return takeSnapshot(state.meta, state.nodes, state.edges)
+}
 
 const defaultMeta: BoothMeta = {
   boothId: '01',
@@ -250,6 +266,17 @@ interface DialogueState {
     childId: string | null,
     sourceHandle?: string | null,
   ) => string | null
+  /** 將說話者套用到指定節點（支援多選） */
+  assignSpeaker: (
+    nodeIds: string[],
+    patch: Pick<DialogueNodeData, 'speakerId' | 'speakerName'>,
+  ) => void
+  /** 刪除人物並清掉節點引用 */
+  removeCharacter: (characterId: string) => void
+  /** 拖曳節點開始前入棧，供還原位置 */
+  beginNodeDrag: () => void
+  undo: () => boolean
+  redo: () => boolean
 }
 
 const initial = starterFlow()
@@ -268,6 +295,7 @@ export const useDialogueStore = create<DialogueState>()(
       connectPicker: null,
 
       setMeta: (patch) => {
+        commitDebounced(currentSnapshot(get()))
         const current = get().meta
         const next = { ...current, ...patch }
         if (patch.boothId != null) {
@@ -281,6 +309,12 @@ export const useDialogueStore = create<DialogueState>()(
       },
 
       onNodesChange: (changes) => {
+        const structural = changes.some(
+          (c) => c.type === 'remove' || c.type === 'add',
+        )
+        if (structural) {
+          commitNow(currentSnapshot(get()))
+        }
         const locked = get().shiftPathIds
         // 鎖定路徑選取時，丟掉 RF 的 select 變更，避免只剩終點
         const applied = locked
@@ -297,14 +331,19 @@ export const useDialogueStore = create<DialogueState>()(
         set({ nodes, selectedId: selectedFromRf })
       },
 
-      onEdgesChange: (changes) =>
-        set({ edges: applyEdgeChanges(changes, get().edges) }),
+      onEdgesChange: (changes) => {
+        if (changes.some((c) => c.type === 'remove' || c.type === 'add')) {
+          commitNow(currentSnapshot(get()))
+        }
+        set({ edges: applyEdgeChanges(changes, get().edges) })
+      },
 
       onConnect: (connection) => {
         const { nodes, edges } = get()
         const source = nodes.find((n) => n.id === connection.source)
         if (!source || !connection.target) return
 
+        commitNow(currentSnapshot(get()))
         let nextEdges = edges
         if (source.data.kind === 'choiceMenu') {
           nextEdges = edges.filter(
@@ -375,6 +414,7 @@ export const useDialogueStore = create<DialogueState>()(
       },
 
       updateNodeData: (id, patch) => {
+        commitDebounced(currentSnapshot(get()))
         set({
           nodes: get().nodes.map((n) =>
             n.id === id ? { ...n, data: { ...n.data, ...patch } } : n,
@@ -386,6 +426,7 @@ export const useDialogueStore = create<DialogueState>()(
       },
 
       addNode: (kind) => {
+        commitNow(currentSnapshot(get()))
         const id = nextId(kind)
         const node: FlowNode = {
           id,
@@ -413,6 +454,7 @@ export const useDialogueStore = create<DialogueState>()(
               : [],
         )
         if (ids.size === 0) return
+        commitNow(currentSnapshot(get()))
         set({
           nodes: get().nodes.filter((n) => !ids.has(n.id)),
           edges: get().edges.filter(
@@ -423,6 +465,7 @@ export const useDialogueStore = create<DialogueState>()(
       },
 
       loadProject: (meta, nodes, edges) => {
+        clearHistory()
         syncIdCounterFromGraph(nodes, edges)
         set({
           meta: { ...meta, boothId: normalizeBoothId(meta.boothId) },
@@ -437,6 +480,7 @@ export const useDialogueStore = create<DialogueState>()(
       },
 
       resetStarter: () => {
+        clearHistory()
         const flow = starterFlow()
         syncIdCounterFromGraph(flow.nodes, flow.edges)
         set({
@@ -471,6 +515,7 @@ export const useDialogueStore = create<DialogueState>()(
         if (!picker) return
         if (!CONNECTION_ALLOWED[picker.sourceKind].includes(kind)) return
 
+        commitNow(currentSnapshot(get()))
         const source = get().nodes.find((n) => n.id === picker.sourceId)
         const id = nextId(kind)
         const node: FlowNode = {
@@ -484,23 +529,41 @@ export const useDialogueStore = create<DialogueState>()(
           selected: true,
         }
 
+        let nextEdges = get().edges
+        if (picker.sourceKind === 'choiceMenu') {
+          nextEdges = nextEdges.filter(
+            (e) =>
+              !(
+                e.source === picker.sourceId &&
+                e.sourceHandle === picker.sourceHandle
+              ),
+          )
+        } else {
+          nextEdges = nextEdges.filter((e) => e.source !== picker.sourceId)
+        }
+        nextEdges = addEdge(
+          {
+            source: picker.sourceId,
+            target: id,
+            sourceHandle: picker.sourceHandle,
+            targetHandle: null,
+            id: nextId('e'),
+          },
+          nextEdges,
+        )
+
         set({
           nodes: withSelection([...get().nodes, node], id),
+          edges: nextEdges,
           selectedId: id,
           connectPicker: null,
-        })
-
-        get().onConnect({
-          source: picker.sourceId,
-          target: id,
-          sourceHandle: picker.sourceHandle,
-          targetHandle: null,
         })
       },
 
       autoCompleteEnds: () => {
         const result = autoCompleteEndNodes(get().nodes, get().edges)
         if (result.added > 0) {
+          commitNow(currentSnapshot(get()))
           syncIdCounterFromGraph(result.nodes, result.edges)
           set({ nodes: result.nodes, edges: result.edges })
         }
@@ -510,6 +573,7 @@ export const useDialogueStore = create<DialogueState>()(
       loadTemplate: (templateId) => {
         const tpl = getTemplate(templateId)
         if (!tpl) return false
+        clearHistory()
         const loaded = tpl.load()
         syncIdCounterFromGraph(loaded.nodes, loaded.edges)
         const completed = autoCompleteEndNodes(loaded.nodes, loaded.edges)
@@ -546,6 +610,7 @@ export const useDialogueStore = create<DialogueState>()(
       pasteClipboard: () => {
         const clip = get().clipboard
         if (!clip) return false
+        commitNow(currentSnapshot(get()))
         const result = pasteSelectionDuplicate(clip, get().nodes, get().edges)
         syncIdCounterFromGraph(result.nodes, result.edges)
         set({
@@ -564,6 +629,7 @@ export const useDialogueStore = create<DialogueState>()(
           get().edges,
         )
         if (!result.ok) return result.reason ?? '無法設定前驅'
+        commitNow(currentSnapshot(get()))
         syncIdCounterFromGraph(result.nodes, result.edges)
         set({ edges: result.edges })
         return null
@@ -578,9 +644,81 @@ export const useDialogueStore = create<DialogueState>()(
           sourceHandle,
         )
         if (!result.ok) return result.reason ?? '無法設定後繼'
+        commitNow(currentSnapshot(get()))
         syncIdCounterFromGraph(result.nodes, result.edges)
         set({ edges: result.edges })
         return null
+      },
+
+      assignSpeaker: (nodeIds, patch) => {
+        const ids = new Set(nodeIds)
+        if (ids.size === 0) return
+        commitNow(currentSnapshot(get()))
+        set({
+          nodes: get().nodes.map((n) =>
+            ids.has(n.id)
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    speakerId: patch.speakerId,
+                    speakerName: patch.speakerName,
+                  },
+                }
+              : n,
+          ),
+        })
+      },
+
+      removeCharacter: (characterId) => {
+        commitNow(currentSnapshot(get()))
+        const characters = (get().meta.characters ?? []).filter(
+          (c) => c.id !== characterId,
+        )
+        set({
+          meta: { ...get().meta, characters },
+          nodes: get().nodes.map((n) =>
+            n.data.speakerId === characterId
+              ? { ...n, data: { ...n.data, speakerId: undefined } }
+              : n,
+          ),
+        })
+      },
+
+      beginNodeDrag: () => {
+        commitNow(currentSnapshot(get()))
+      },
+
+      undo: () => {
+        const prev = historyUndo(currentSnapshot(get()))
+        if (!prev) return false
+        syncIdCounterFromGraph(prev.nodes, prev.edges)
+        set({
+          meta: prev.meta,
+          nodes: prev.nodes,
+          edges: prev.edges,
+          selectedId: null,
+          shiftAnchorId: null,
+          shiftPathIds: null,
+          connectPicker: null,
+        })
+        return true
+      },
+
+      redo: () => {
+        const next = historyRedo(currentSnapshot(get()))
+        if (!next) return false
+        syncIdCounterFromGraph(next.nodes, next.edges)
+        set({
+          meta: next.meta,
+          nodes: next.nodes,
+          edges: next.edges,
+          selectedId: null,
+          shiftAnchorId: null,
+          shiftPathIds: null,
+          connectPicker: null,
+        })
+        return true
       },
     }),
     {
