@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useDialogueStore } from '../store/useDialogueStore'
 import {
   canConnectKinds,
@@ -10,10 +10,12 @@ import {
   nodeLabel,
   outgoingEdges,
 } from '../domain/linearSegment'
-import { CharacterRoster } from './CharacterRoster'
+import { CharacterManageModal } from './CharacterManageModal'
 import { SpeakerFields } from './SpeakerFields'
+import { SpeakerOverview } from './SpeakerOverview'
 
 export function Inspector() {
+  const [charsOpen, setCharsOpen] = useState(false)
   const selectedId = useDialogueStore((s) => s.selectedId)
   const nodes = useDialogueStore((s) => s.nodes)
   const edges = useDialogueStore((s) => s.edges)
@@ -21,6 +23,18 @@ export function Inspector() {
   const setIncoming = useDialogueStore((s) => s.setIncoming)
   const setOutgoing = useDialogueStore((s) => s.setOutgoing)
   const node = nodes.find((n) => n.id === selectedId)
+
+  const selectedSpeakableIds = useMemo(
+    () =>
+      nodes
+        .filter(
+          (n) =>
+            n.selected &&
+            (n.data.kind === 'message' || n.data.kind === 'url'),
+        )
+        .map((n) => n.id),
+    [nodes],
+  )
 
   const parentEdge = useMemo(() => {
     if (!node) return null
@@ -48,22 +62,37 @@ export function Inspector() {
     )
   }, [node, nodes])
 
+  const openChars = () => setCharsOpen(true)
+
   if (!node) {
     return (
       <aside className="panel inspector">
         <h2>屬性</h2>
         <p className="panel-lead">選取畫布上的節點以編輯台詞與備註。</p>
-        <CharacterRoster />
+        <SpeakerOverview onManageCharacters={openChars} />
         <p className="panel-hint">
           <kbd>Ctrl</kbd> 多選　
           <kbd>Shift</kbd> 同線兩點區間　
-          <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 複製
+          <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd> 復原重做
         </p>
+        <CharacterManageModal
+          open={charsOpen}
+          onClose={() => setCharsOpen(false)}
+        />
       </aside>
     )
   }
 
   const d = node.data
+  const speakerTargets =
+    selectedSpeakableIds.length > 0
+      ? selectedSpeakableIds
+      : d.kind === 'message' || d.kind === 'url'
+        ? [node.id]
+        : []
+
+  const speakerData =
+    nodes.find((n) => n.id === speakerTargets[0])?.data ?? d
 
   const applyIncoming = (parentId: string) => {
     const err = setIncoming(node.id, parentId || null)
@@ -105,8 +134,12 @@ export function Inspector() {
         </label>
       )}
 
-      {(d.kind === 'message' || d.kind === 'url') && (
-        <SpeakerFields nodeId={node.id} data={d} />
+      {speakerTargets.length > 0 && (
+        <SpeakerFields
+          targetIds={speakerTargets}
+          data={speakerData}
+          onManageCharacters={openChars}
+        />
       )}
 
       <label className="field">
@@ -198,9 +231,14 @@ export function Inspector() {
       </div>
 
       <p className="panel-hint">
-        <kbd>Ctrl</kbd> 多選　
-        <kbd>Shift</kbd> 同線區間　拖曳移動
+        <kbd>Ctrl</kbd>+<kbd>Z</kbd> 復原　
+        <kbd>Ctrl</kbd>+<kbd>Y</kbd>／
+        <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> 重做
       </p>
+      <CharacterManageModal
+        open={charsOpen}
+        onClose={() => setCharsOpen(false)}
+      />
     </aside>
   )
 }

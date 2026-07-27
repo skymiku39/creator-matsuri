@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   downloadText,
   parseProjectJson,
@@ -9,6 +9,7 @@ import { useDialogueStore } from '../store/useDialogueStore'
 import { normalizeBoothId } from '../domain/types'
 import type { FlowNode } from '../domain/flowGraph'
 import type { Edge } from '@xyflow/react'
+import { CharacterManageModal } from './CharacterManageModal'
 
 export function Toolbar() {
   const meta = useDialogueStore((s) => s.meta)
@@ -18,7 +19,10 @@ export function Toolbar() {
   const loadProject = useDialogueStore((s) => s.loadProject)
   const resetStarter = useDialogueStore((s) => s.resetStarter)
   const select = useDialogueStore((s) => s.select)
+  const undo = useDialogueStore((s) => s.undo)
+  const redo = useDialogueStore((s) => s.redo)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [charsOpen, setCharsOpen] = useState(false)
 
   const issues = useMemo(() => validateFlow(nodes, edges), [nodes, edges])
 
@@ -91,6 +95,19 @@ export function Toolbar() {
         </div>
 
         <div className="btn-row">
+          <button type="button" title="Ctrl+Z" onClick={() => undo()}>
+            復原
+          </button>
+          <button
+            type="button"
+            title="Ctrl+Y / Ctrl+Shift+Z"
+            onClick={() => redo()}
+          >
+            重做
+          </button>
+          <button type="button" onClick={() => setCharsOpen(true)}>
+            人物
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -147,6 +164,10 @@ export function Toolbar() {
           </ul>
         )}
       </div>
+      <CharacterManageModal
+        open={charsOpen}
+        onClose={() => setCharsOpen(false)}
+      />
     </header>
   )
 }

@@ -3,74 +3,129 @@ import type { DialogueNodeData } from '../domain/types'
 import { useDialogueStore } from '../store/useDialogueStore'
 
 type Props = {
-  nodeId: string
+  /** 要套用說話者的節點（單選或多選對話／連結） */
+  targetIds: string[]
+  /** 用於顯示目前狀態的代表 data（通常是主選節點） */
   data: DialogueNodeData
+  onManageCharacters: () => void
 }
 
-/** 節點說話者：預設／人物設定／本句自訂 */
-export function SpeakerFields({ nodeId, data }: Props) {
+type Assignment =
+  | { type: 'default' }
+  | { type: 'roster'; id: string }
+  | { type: 'custom' }
+
+/** 一鍵晶片切換說話者；可一次套用到多選節點 */
+export function SpeakerFields({
+  targetIds,
+  data,
+  onManageCharacters,
+}: Props) {
   const meta = useDialogueStore((s) => s.meta)
+  const assignSpeaker = useDialogueStore((s) => s.assignSpeaker)
   const updateNodeData = useDialogueStore((s) => s.updateNodeData)
   const characters = meta.characters ?? []
   const defaultName = resolveSpeakerName(meta, null)
+  const current = resolveSpeakerName(meta, data)
 
-  const mode = data.speakerName?.trim()
-    ? 'custom'
+  const mode: Assignment = data.speakerName?.trim()
+    ? { type: 'custom' }
     : data.speakerId?.trim()
-      ? 'roster'
-      : 'default'
+      ? { type: 'roster', id: data.speakerId }
+      : { type: 'default' }
 
-  const selectValue =
-    mode === 'custom' ? '__custom__' : mode === 'roster' ? data.speakerId! : ''
-
-  const onSelect = (value: string) => {
-    if (value === '') {
-      updateNodeData(nodeId, { speakerId: undefined, speakerName: undefined })
+  const apply = (next: Assignment) => {
+    if (next.type === 'default') {
+      assignSpeaker(targetIds, { speakerId: undefined, speakerName: undefined })
       return
     }
-    if (value === '__custom__') {
-      updateNodeData(nodeId, {
-        speakerId: undefined,
-        speakerName: data.speakerName?.trim() || defaultName,
+    if (next.type === 'roster') {
+      assignSpeaker(targetIds, {
+        speakerId: next.id,
+        speakerName: undefined,
       })
       return
     }
-    updateNodeData(nodeId, { speakerId: value, speakerName: undefined })
+    assignSpeaker(targetIds, {
+      speakerId: undefined,
+      speakerName: data.speakerName?.trim() || defaultName,
+    })
+  }
+
+  const onCustomName = (value: string) => {
+    for (const id of targetIds) {
+      updateNodeData(id, { speakerId: undefined, speakerName: value })
+    }
   }
 
   return (
     <div className="speaker-fields">
-      <label className="field">
+      <div className="speaker-fields__head">
         <span>說話者</span>
-        <select value={selectValue} onChange={(e) => onSelect(e.target.value)}>
-          <option value="">預設（{defaultName}）</option>
-          {characters.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-              {c.note ? `｜${c.note}` : ''}
-            </option>
-          ))}
-          <option value="__custom__">本句自訂…</option>
-        </select>
-      </label>
-      {mode === 'custom' && (
+        <strong>{current}</strong>
+        {targetIds.length > 1 && (
+          <em className="speaker-fields__batch">
+            套用到已選 {targetIds.length} 句
+          </em>
+        )}
+      </div>
+
+      <div className="speaker-chips" role="group" aria-label="切換說話者">
+        <button
+          type="button"
+          className={`speaker-chip${mode.type === 'default' ? ' is-active' : ''}`}
+          onClick={() => apply({ type: 'default' })}
+          title={`使用預設：${defaultName}`}
+        >
+          預設
+        </button>
+        {characters.map((c, i) => (
+          <button
+            key={c.id}
+            type="button"
+            className={`speaker-chip tone-${i % 5}${
+              mode.type === 'roster' && mode.id === c.id ? ' is-active' : ''
+            }`}
+            onClick={() => apply({ type: 'roster', id: c.id })}
+            title={c.note || c.name}
+          >
+            {c.name || '未命名'}
+          </button>
+        ))}
+        <button
+          type="button"
+          className={`speaker-chip speaker-chip--custom${
+            mode.type === 'custom' ? ' is-active' : ''
+          }`}
+          onClick={() => apply({ type: 'custom' })}
+        >
+          自訂
+        </button>
+        <button
+          type="button"
+          className="speaker-chip speaker-chip--manage"
+          onClick={onManageCharacters}
+        >
+          {characters.length === 0 ? '＋新增人物' : '管理人物'}
+        </button>
+      </div>
+
+      {characters.length === 0 && (
+        <p className="panel-hint speaker-fields__hint">
+          還沒有人物。按「新增人物」建立店員／訪客等，之後點晶片就能切換發言。
+        </p>
+      )}
+
+      {mode.type === 'custom' && (
         <label className="field">
           <span>自訂名稱</span>
           <input
             value={data.speakerName ?? ''}
             placeholder={defaultName}
-            onChange={(e) =>
-              updateNodeData(nodeId, {
-                speakerName: e.target.value,
-                speakerId: undefined,
-              })
-            }
+            onChange={(e) => onCustomName(e.target.value)}
           />
         </label>
       )}
-      <p className="panel-hint">
-        目前顯示：{resolveSpeakerName(meta, data)}
-      </p>
     </div>
   )
 }
