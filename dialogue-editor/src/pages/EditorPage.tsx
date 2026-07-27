@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
 import { AppNav } from '../components/layout/AppNav'
+import { CharacterManageModal } from '../components/CharacterManageModal'
 import { FlowCanvas } from '../components/FlowCanvas'
 import { Inspector } from '../components/Inspector'
 import { Toolbar } from '../components/Toolbar'
@@ -11,6 +12,8 @@ import { useDialogueStore } from '../store/useDialogueStore'
 export function EditorPage() {
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const autoCompleteEnds = useDialogueStore((s) => s.autoCompleteEnds)
+  const characterModalOpen = useDialogueStore((s) => s.characterModalOpen)
+  const closeCharacterModal = useDialogueStore((s) => s.closeCharacterModal)
 
   return (
     <ReactFlowProvider>
@@ -47,6 +50,10 @@ export function EditorPage() {
         <TemplateModal
           open={templatesOpen}
           onClose={() => setTemplatesOpen(false)}
+        />
+        <CharacterManageModal
+          open={characterModalOpen}
+          onClose={() => closeCharacterModal()}
         />
       </div>
     </ReactFlowProvider>

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import {
   nextCharacterId,
   resolveSpeakerName,
@@ -38,7 +39,7 @@ export function CharacterManageModal({ open, onClose }: Props) {
     )
   }
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <div
         className="modal-card character-modal"
@@ -132,6 +133,7 @@ export function CharacterManageModal({ open, onClose }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

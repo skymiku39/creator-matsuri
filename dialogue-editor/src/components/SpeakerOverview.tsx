@@ -20,10 +20,15 @@ export function SpeakerOverview({ onManageCharacters }: Props) {
           ? `　｜　已建立 ${characters.length} 位人物`
           : '　｜　尚未建立人物'}
       </p>
-      <div className="speaker-chips">
-        <span className="speaker-chip is-active">預設｜{defaultName}</span>
+      <div className="speaker-chips speaker-chips--static">
+        <span className="speaker-chip speaker-chip--static is-active">
+          預設｜{defaultName}
+        </span>
         {characters.map((c, i) => (
-          <span key={c.id} className={`speaker-chip tone-${i % 5}`}>
+          <span
+            key={c.id}
+            className={`speaker-chip speaker-chip--static tone-${i % 5}`}
+          >
             {c.name}
           </span>
         ))}

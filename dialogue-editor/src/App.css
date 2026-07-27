@@ -8,7 +8,7 @@
 
 .app-header {
   flex-shrink: 0;
-  max-height: min(22vh, 168px);
+  max-height: min(28vh, 220px);
   overflow-x: hidden;
   overflow-y: auto;
   border-bottom: 1px solid var(--line);
@@ -129,7 +129,7 @@
   padding: 0;
   display: grid;
   gap: 0.15rem;
-  max-height: 2.6rem;
+  max-height: 3.2rem;
   overflow: auto;
 }
 
@@ -162,7 +162,7 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: 200px 1fr 280px;
+  grid-template-columns: 200px minmax(0, 1fr) minmax(260px, 300px);
   min-height: 0;
   height: 100%;
   overflow: hidden;
@@ -244,6 +244,20 @@
   background: #fff;
   cursor: pointer;
   color: var(--ink, #1c2421);
+  line-height: 1.35;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.speaker-chip--static {
+  cursor: default;
+  display: inline-block;
+}
+
+.speaker-chips--static {
+  pointer-events: none;
 }
 
 .speaker-chip.is-active {
@@ -421,6 +435,17 @@
 .panel.inspector {
   border-right: 0;
   border-left: 1px solid var(--line);
+  min-width: 0;
+}
+
+.inspector .speaker-chips {
+  max-width: 100%;
+}
+
+.inspector .field input,
+.inspector .field textarea,
+.inspector .field select {
+  min-width: 0;
 }
 
 .panel h2 {

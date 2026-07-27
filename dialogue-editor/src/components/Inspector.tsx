@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useDialogueStore } from '../store/useDialogueStore'
 import {
   canConnectKinds,
@@ -10,12 +10,11 @@ import {
   nodeLabel,
   outgoingEdges,
 } from '../domain/linearSegment'
-import { CharacterManageModal } from './CharacterManageModal'
 import { SpeakerFields } from './SpeakerFields'
 import { SpeakerOverview } from './SpeakerOverview'
 
 export function Inspector() {
-  const [charsOpen, setCharsOpen] = useState(false)
+  const openCharacterModal = useDialogueStore((s) => s.openCharacterModal)
   const selectedId = useDialogueStore((s) => s.selectedId)
   const nodes = useDialogueStore((s) => s.nodes)
   const edges = useDialogueStore((s) => s.edges)
@@ -62,7 +61,7 @@ export function Inspector() {
     )
   }, [node, nodes])
 
-  const openChars = () => setCharsOpen(true)
+  const openChars = () => openCharacterModal()
 
   if (!node) {
     return (
@@ -75,10 +74,6 @@ export function Inspector() {
           <kbd>Shift</kbd> 同線兩點區間　
           <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd> 復原重做
         </p>
-        <CharacterManageModal
-          open={charsOpen}
-          onClose={() => setCharsOpen(false)}
-        />
       </aside>
     )
   }
@@ -235,10 +230,6 @@ export function Inspector() {
         <kbd>Ctrl</kbd>+<kbd>Y</kbd>／
         <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> 重做
       </p>
-      <CharacterManageModal
-        open={charsOpen}
-        onClose={() => setCharsOpen(false)}
-      />
     </aside>
   )
 }

@@ -236,6 +236,9 @@ interface DialogueState {
   /** Ctrl+C 暫存；不寫入 localStorage */
   clipboard: SelectionClipboard | null
   connectPicker: ConnectPickerState | null
+  characterModalOpen: boolean
+  openCharacterModal: () => void
+  closeCharacterModal: () => void
   setMeta: (patch: Partial<BoothMeta>) => void
   onNodesChange: (changes: NodeChange<FlowNode>[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
@@ -293,6 +296,10 @@ export const useDialogueStore = create<DialogueState>()(
       shiftPathIds: null,
       clipboard: null,
       connectPicker: null,
+      characterModalOpen: false,
+
+      openCharacterModal: () => set({ characterModalOpen: true }),
+      closeCharacterModal: () => set({ characterModalOpen: false }),
 
       setMeta: (patch) => {
         commitDebounced(currentSnapshot(get()))
