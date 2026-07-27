@@ -1,14 +1,23 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import type { DialogueNodeData } from '../../domain/types'
+import { hasSpeakerOverride, resolveSpeakerName } from '../../domain/speaker'
+import { useDialogueStore } from '../../store/useDialogueStore'
 import { PlusHandle } from './PlusHandle'
 
 type DialogueFlowNode = Node<DialogueNodeData>
 
 export function MessageNode({ id, data, selected }: NodeProps<DialogueFlowNode>) {
+  const meta = useDialogueStore((s) => s.meta)
+  const speaker = resolveSpeakerName(meta, data)
+  const overridden = hasSpeakerOverride(data)
+
   return (
     <div className={`flow-node message ${selected ? 'selected' : ''}`}>
       <Handle type="target" position={Position.Top} className="target-handle" />
       <div className="flow-node__kind">對話</div>
+      <div className={`flow-node__speaker${overridden ? ' flow-node__speaker--override' : ''}`}>
+        {speaker}
+      </div>
       <div className="flow-node__title">{data.title || '訊息'}</div>
       <p className="flow-node__preview">{data.text || '（空白）'}</p>
       <PlusHandle

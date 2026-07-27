@@ -10,6 +10,8 @@ import {
   nodeLabel,
   outgoingEdges,
 } from '../domain/linearSegment'
+import { CharacterRoster } from './CharacterRoster'
+import { SpeakerFields } from './SpeakerFields'
 
 export function Inspector() {
   const selectedId = useDialogueStore((s) => s.selectedId)
@@ -51,6 +53,7 @@ export function Inspector() {
       <aside className="panel inspector">
         <h2>屬性</h2>
         <p className="panel-lead">選取畫布上的節點以編輯台詞與備註。</p>
+        <CharacterRoster />
         <p className="panel-hint">
           <kbd>Ctrl</kbd> 多選　
           <kbd>Shift</kbd> 同線兩點區間　
@@ -100,6 +103,10 @@ export function Inspector() {
             onChange={(e) => updateNodeData(node.id, { text: e.target.value })}
           />
         </label>
+      )}
+
+      {(d.kind === 'message' || d.kind === 'url') && (
+        <SpeakerFields nodeId={node.id} data={d} />
       )}
 
       <label className="field">

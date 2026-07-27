@@ -16,6 +16,19 @@ export interface DialogueNodeData extends Record<string, unknown> {
   note: string
   /** 是否為「返回選單」類選項（驗證用） */
   isReturn?: boolean
+  /** 引用 meta.characters 的人物 id；空則用攤位預設說話者 */
+  speakerId?: string
+  /** 本句自訂說話者（優先於 speakerId／預設） */
+  speakerName?: string
+}
+
+/** 專案層人物設定（可被多句台詞引用） */
+export interface CharacterDef {
+  id: string
+  /** 顯示名稱（訊息框黃字） */
+  name: string
+  /** 選填備註（人設／聲線等） */
+  note?: string
 }
 
 export interface SimChoiceLayout {
@@ -33,8 +46,10 @@ export interface BoothMeta {
   boothName: string
   /** 語系欄位名 */
   locale: string
-  /** 模擬畫面說話者名稱（對應 RPG 訊息框上方黃字） */
+  /** 預設說話者名稱（對應 RPG 訊息框上方黃字；節點未覆寫時使用） */
   speakerName?: string
+  /** 人物設定表（節點可用 speakerId 引用） */
+  characters?: CharacterDef[]
   /** 模擬畫面選項方塊位置（可拖曳儲存） */
   simChoiceLayouts?: SimChoiceLayout[]
 }

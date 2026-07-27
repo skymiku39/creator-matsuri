@@ -80,6 +80,14 @@ export function Toolbar() {
               onChange={(e) => setMeta({ boothName: e.target.value })}
             />
           </label>
+          <label className="field inline">
+            <span>預設說話者</span>
+            <input
+              value={meta.speakerName ?? ''}
+              placeholder="攤位店員"
+              onChange={(e) => setMeta({ speakerName: e.target.value })}
+            />
+          </label>
         </div>
 
         <div className="btn-row">

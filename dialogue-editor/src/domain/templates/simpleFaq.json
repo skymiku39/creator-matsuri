@@ -4,7 +4,11 @@
     "boothId": "02",
     "boothName": "簡易問答攤位",
     "locale": "zh_TW",
-    "speakerName": "攤位店員"
+    "speakerName": "攤位店員",
+    "characters": [
+      { "id": "char_1", "name": "攤位店員", "note": "主線接待" },
+      { "id": "char_2", "name": "訪客", "note": "玩家側旁白（示範）" }
+    ]
   },
   "nodes": [
     {
@@ -18,7 +22,8 @@
         "kind": "message",
         "title": "開場01",
         "text": "「歡迎光臨簡易問答攤位！」",
-        "note": ""
+        "note": "",
+        "speakerId": "char_1"
       }
     },
     {

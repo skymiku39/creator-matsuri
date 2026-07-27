@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppNav } from '../components/layout/AppNav'
 import { SimChoiceOverlay } from '../components/sim/SimChoiceOverlay'
+import { resolveSpeakerName } from '../domain/speaker'
 import {
   advanceSimulation,
   createSimulation,
@@ -38,10 +39,16 @@ export function SimulatePage() {
     setEndReason('end')
   }, [graphKey])
 
-  const speaker =
-    meta.speakerName?.trim() ||
-    meta.boothName?.replace(/攤位$/, '') ||
-    'NPC'
+  const speaker = useMemo(() => {
+    if (
+      phase &&
+      (phase.type === 'message' || phase.type === 'url')
+    ) {
+      const node = nodes.find((n) => n.id === phase.nodeId)
+      return resolveSpeakerName(meta, node?.data)
+    }
+    return resolveSpeakerName(meta, null)
+  }, [meta, nodes, phase])
 
   const boothLabel = meta.boothName || `${meta.boothId}攤位`
 
@@ -122,7 +129,7 @@ export function SimulatePage() {
         <AppNav />
         <div className="top-bar__actions">
           <label className="sim-speaker-edit">
-            <span>說話者</span>
+            <span>預設說話者</span>
             <input
               value={meta.speakerName ?? ''}
               placeholder="Mirai"

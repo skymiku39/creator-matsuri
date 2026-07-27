@@ -1,5 +1,6 @@
 import type { Edge } from '@xyflow/react'
 import type { FlowNode } from './flowGraph'
+import { normalizeCharacters } from './speaker'
 import {
   normalizeBoothId,
   type BoothMeta,
@@ -57,6 +58,9 @@ export function parseProjectJson(text: string): DialogueProject {
       locale: String(v.meta.locale ?? 'zh_TW'),
       ...(v.meta.speakerName != null
         ? { speakerName: String(v.meta.speakerName) }
+        : {}),
+      ...(Array.isArray(v.meta.characters)
+        ? { characters: normalizeCharacters(v.meta.characters) }
         : {}),
       ...(Array.isArray(v.meta.simChoiceLayouts)
         ? {

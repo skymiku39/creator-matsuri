@@ -15,6 +15,10 @@ describe('專案 JSON 匯入／匯出', () => {
       boothName: '測試攤位',
       locale: 'zh_TW',
       speakerName: 'Mirai',
+      characters: [
+        { id: 'char_1', name: '店員A', note: '主線' },
+        { id: 'char_2', name: '訪客' },
+      ],
       simChoiceLayouts: [{ letter: 'A', xPct: 70, yPct: 12 }],
     }
     const nodes: FlowNode[] = [
@@ -27,6 +31,7 @@ describe('專案 JSON 匯入／匯出', () => {
           title: '開場',
           text: '「你好」',
           note: '備註A',
+          speakerId: 'char_1',
         },
       },
       {
@@ -50,12 +55,17 @@ describe('專案 JSON 匯入／匯出', () => {
     expect(loaded.meta.boothId).toBe('01')
     expect(loaded.meta.boothName).toBe('測試攤位')
     expect(loaded.meta.speakerName).toBe('Mirai')
+    expect(loaded.meta.characters).toEqual([
+      { id: 'char_1', name: '店員A', note: '主線' },
+      { id: 'char_2', name: '訪客' },
+    ])
     expect(loaded.meta.simChoiceLayouts).toEqual([
       { letter: 'A', xPct: 70, yPct: 12 },
     ])
     expect(loaded.nodes).toHaveLength(2)
     expect(loaded.edges).toHaveLength(1)
     expect((loaded.nodes[0] as FlowNode).data.text).toBe('「你好」')
+    expect((loaded.nodes[0] as FlowNode).data.speakerId).toBe('char_1')
   })
 
   it('損壞的專案 JSON 會拋錯', () => {
