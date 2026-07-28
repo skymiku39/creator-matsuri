@@ -30,7 +30,7 @@ npm run dev
 
 ## 版本
 
-目前版本：`1.0.0`（見 `dialogue-editor/package.json`）
+目前版本：`1.1.0`（見 `dialogue-editor/package.json`）
 
 獨立頁面：
 - `/` 編輯器（多人發言晶片、復原／重做）

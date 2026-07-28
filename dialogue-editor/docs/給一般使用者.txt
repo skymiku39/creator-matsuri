@@ -1,9 +1,14 @@
-攤位台詞流程編輯器（免安裝版）
+攤位台詞流程編輯器（免安裝版）v1.1.0
 
 【怎麼用】
 1. 雙擊「DialogueEditor-*-Portable.exe」開啟
 2. 關掉視窗就結束，不需另外關閉伺服器
 3. 不需要安裝 Node.js 或任何開發工具
+
+【本版重點】
+- 人物設定與說話者晶片（可多人發言）
+- Ctrl+Z／Ctrl+Y／Ctrl+Shift+Z 復原與重做
+- 匯出 JSON 可交給 creator-matsuri-tools 反編成純文字與流程圖
 
 【建議】
 - 編輯完成後按「匯出 JSON」備份
