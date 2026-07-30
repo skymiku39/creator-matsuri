@@ -8,16 +8,11 @@
 
 **https://skymiku39.github.io/creator-matsuri/**
 
-- 資料存在瀏覽器本機（localStorage）
-- 換裝置請用「匯出 JSON」備份後再「匯入」
-- 推送 `master` 且變更 `dialogue-editor/` 時會自動重新部署
+（會導向 `/docs/` 編輯器；資料存在瀏覽器 localStorage，換裝置請匯出 JSON）
 
-首次啟用請到倉庫  
-[Settings → Pages](https://github.com/skymiku39/creator-matsuri/settings/pages)  
-擇一設定（建議用 Actions）：
-
-1. **GitHub Actions**（推薦）：Source 選 **GitHub Actions**
-2. **或從分支**：Source 選 **Deploy from a branch** → Branch `master` → Folder **`/docs`**
+推送 `master` 時：
+- `docs/` 靜態檔會由分支 Pages 提供服務
+- 變更 `dialogue-editor/` 也會跑 Actions 建置（可改為 Source = GitHub Actions）
 
 ## 專案結構
 
