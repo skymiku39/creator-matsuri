@@ -14,7 +14,10 @@
 
 首次啟用請到倉庫  
 [Settings → Pages](https://github.com/skymiku39/creator-matsuri/settings/pages)  
-將 **Source** 設為 **GitHub Actions**（不要用 Deploy from a branch）。
+擇一設定（建議用 Actions）：
+
+1. **GitHub Actions**（推薦）：Source 選 **GitHub Actions**
+2. **或從分支**：Source 選 **Deploy from a branch** → Branch `master` → Folder **`/docs`**
 
 ## 專案結構
 
