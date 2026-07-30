@@ -2,6 +2,16 @@
 
 攤位台詞流程編輯器（RPG Maker MV／MZ 用語句表）。
 
+## 網頁版（GitHub Pages）
+
+直接在瀏覽器編輯（免安裝）：
+
+**https://skymiku39.github.io/creator-matsuri/**
+
+- 資料存在瀏覽器本機（localStorage）
+- 換裝置請用「匯出 JSON」備份後再「匯入」
+- 推送 `master` 且變更 `dialogue-editor/` 時會自動重新部署
+
 ## 專案結構
 
 ```

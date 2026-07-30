@@ -1,6 +1,11 @@
 攤位台詞流程編輯器（免安裝版）v1.1.0
 
-【怎麼用】
+【網頁版（推薦）】
+直接用瀏覽器開啟：
+https://skymiku39.github.io/creator-matsuri/
+資料存在該瀏覽器；換電腦請匯出 JSON 再匯入。
+
+【桌面版怎麼用】
 1. 雙擊「DialogueEditor-*-Portable.exe」開啟
 2. 關掉視窗就結束，不需另外關閉伺服器
 3. 不需要安裝 Node.js 或任何開發工具

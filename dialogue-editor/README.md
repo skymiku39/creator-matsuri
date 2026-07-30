@@ -2,7 +2,13 @@
 
 給《創作者的文化祭》攤位對話使用的流程圖編輯器。
 
-## 給一般使用者（免寫程式）
+## 網頁版（推薦）
+
+直接開啟：**https://skymiku39.github.io/creator-matsuri/**
+
+免安裝，資料存在瀏覽器；請定期「匯出 JSON」備份。
+
+## 給一般使用者（免寫程式／桌面版）
 
 1. 到 GitHub Releases 下載 **`DialogueEditor-*-Portable.exe`**
 2. **雙擊**開啟
