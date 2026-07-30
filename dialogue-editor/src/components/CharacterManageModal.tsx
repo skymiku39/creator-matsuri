@@ -1,9 +1,11 @@
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
   nextCharacterId,
   resolveSpeakerName,
 } from '../domain/speaker'
 import type { CharacterDef } from '../domain/types'
+import { useBackdropDismiss } from '../hooks/useBackdropDismiss'
 import { useDialogueStore } from '../store/useDialogueStore'
 
 type Props = {
@@ -18,6 +20,14 @@ export function CharacterManageModal({ open, onClose }: Props) {
   const removeCharacter = useDialogueStore((s) => s.removeCharacter)
   const characters = meta.characters ?? []
   const defaultLabel = resolveSpeakerName(meta, null)
+  const firstFieldRef = useRef<HTMLInputElement>(null)
+  const backdrop = useBackdropDismiss({ open, onClose })
+
+  useEffect(() => {
+    if (!open) return
+    const t = window.setTimeout(() => firstFieldRef.current?.focus(), 0)
+    return () => window.clearTimeout(t)
+  }, [open])
 
   if (!open) return null
 
@@ -40,7 +50,12 @@ export function CharacterManageModal({ open, onClose }: Props) {
   }
 
   return createPortal(
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+    <div
+      className="modal-backdrop"
+      role="presentation"
+      onPointerDown={backdrop.onPointerDown}
+      onClick={backdrop.onClick}
+    >
       <div
         className="modal-card character-modal"
         role="dialog"
@@ -51,18 +66,21 @@ export function CharacterManageModal({ open, onClose }: Props) {
         <header className="modal-card__head">
           <h2 id="character-modal-title">人物設定</h2>
           <button type="button" className="ghost-btn" onClick={onClose}>
-            關閉
+            完成
           </button>
         </header>
 
         <p className="panel-lead">
-          先在這裡建好角色，編輯對話時用說話者晶片一鍵切換。
-          預設說話者目前是「{defaultLabel}」。
+          在此新增與改名角色；變更會立刻套用，按「完成」或 Esc
+          即可關閉（點背景空白處也可關，拖曳選取文字不會誤關）。
+          編輯台詞時點說話者晶片即可切換；未指定人物時使用預設「
+          {defaultLabel}」。
         </p>
 
         <label className="field">
           <span>預設說話者（未指定人物時）</span>
           <input
+            ref={firstFieldRef}
             value={meta.speakerName ?? ''}
             placeholder="例：攤位店員"
             onChange={(e) => setMeta({ speakerName: e.target.value })}
@@ -86,7 +104,7 @@ export function CharacterManageModal({ open, onClose }: Props) {
                   className="character-list__name"
                   value={c.name}
                   aria-label="人物名稱"
-                  placeholder="名稱"
+                  placeholder="名稱（勿留空）"
                   onChange={(e) =>
                     updateCharacter(c.id, { name: e.target.value })
                   }
@@ -97,11 +115,7 @@ export function CharacterManageModal({ open, onClose }: Props) {
                   placeholder="人設備註（選填）"
                   aria-label="人物備註"
                   onChange={(e) =>
-                    updateCharacter(c.id, {
-                      note: e.target.value.trim()
-                        ? e.target.value
-                        : undefined,
-                    })
+                    updateCharacter(c.id, { note: e.target.value })
                   }
                 />
               </div>

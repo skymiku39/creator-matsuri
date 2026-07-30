@@ -44,8 +44,8 @@ npm run dev
 ```bash
 cd creator-matsuri-tools/dialogue-json-export
 npm install
-npm run export -- "路徑\booth_01_flow.json"
-# 或把 JSON 拖到 匯出.bat
+npm run export -- "完整路徑\booth_01_flow.json"
+# 或把 JSON 拖到 匯出.bat（最省事）
 ```
 
 輸出純文字台詞（含說話者／人物表）與不重疊流程圖 PNG。

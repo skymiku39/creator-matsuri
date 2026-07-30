@@ -104,7 +104,11 @@ export function Toolbar() {
           >
             重做
           </button>
-          <button type="button" onClick={() => openCharacterModal()}>
+          <button
+            type="button"
+            title="新增／改名角色，供說話者晶片切換"
+            onClick={() => openCharacterModal()}
+          >
             人物
           </button>
           <button

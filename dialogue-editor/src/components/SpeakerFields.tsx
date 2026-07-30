@@ -112,7 +112,13 @@ export function SpeakerFields({
 
       {characters.length === 0 && (
         <p className="panel-hint speaker-fields__hint">
-          還沒有人物。按「新增人物」建立店員／訪客等，之後點晶片就能切換發言。
+          還沒有人物。按「＋新增人物」建立店員／訪客等，之後點晶片就能切換發言。
+          「預設」＝工具列／人物設定裡的預設說話者；「自訂」＝只改本句名稱。
+        </p>
+      )}
+      {characters.length > 0 && mode.type === 'default' && (
+        <p className="panel-hint speaker-fields__hint">
+          目前用預設「{defaultName}」。點上方人物晶片可改成名單角色；改名請按「管理人物」。
         </p>
       )}
 

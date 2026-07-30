@@ -1,4 +1,5 @@
 import { DIALOGUE_TEMPLATES } from '../domain/templates/catalog'
+import { useBackdropDismiss } from '../hooks/useBackdropDismiss'
 import { useDialogueStore } from '../store/useDialogueStore'
 
 type Props = {
@@ -8,11 +9,17 @@ type Props = {
 
 export function TemplateModal({ open, onClose }: Props) {
   const loadTemplate = useDialogueStore((s) => s.loadTemplate)
+  const backdrop = useBackdropDismiss({ open, onClose })
 
   if (!open) return null
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+    <div
+      className="modal-backdrop"
+      role="presentation"
+      onPointerDown={backdrop.onPointerDown}
+      onClick={backdrop.onClick}
+    >
       <div
         className="modal-panel"
         role="dialog"

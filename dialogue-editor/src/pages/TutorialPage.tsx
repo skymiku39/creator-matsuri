@@ -45,8 +45,18 @@ export function TutorialPage() {
         <section>
           <h2>3. 多人發言與復原</h2>
           <ol>
-            <li>工具列按 <strong>人物</strong> 建立店員、訪客等角色</li>
-            <li>選取對話節點後，右側用<strong>說話者晶片</strong>一鍵切換；<kbd>Ctrl</kbd> 多選可整批套用</li>
+            <li>
+              工具列按 <strong>人物</strong> 開啟人物設定：可設<strong>預設說話者</strong>，並新增店員、訪客等角色
+            </li>
+            <li>
+              在人物設定裡改名會<strong>立刻套用</strong>；按「完成」或 <kbd>Esc</kbd> 關閉。
+              拖曳選取名稱時不會誤關視窗
+            </li>
+            <li>
+              選取對話節點後，右側用<strong>說話者晶片</strong>切換：
+              「預設」＝未指定人物時的名稱、「人物名」＝引用名單、「自訂」＝只改本句
+            </li>
+            <li><kbd>Ctrl</kbd> 多選節點後再點晶片，可整批套用說話者</li>
             <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> 復原、<kbd>Ctrl</kbd>+<kbd>Y</kbd> 或 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> 重做</li>
           </ol>
         </section>
