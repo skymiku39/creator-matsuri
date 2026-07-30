@@ -12,6 +12,10 @@
 - 換裝置請用「匯出 JSON」備份後再「匯入」
 - 推送 `master` 且變更 `dialogue-editor/` 時會自動重新部署
 
+首次啟用請到倉庫  
+[Settings → Pages](https://github.com/skymiku39/creator-matsuri/settings/pages)  
+將 **Source** 設為 **GitHub Actions**（不要用 Deploy from a branch）。
+
 ## 專案結構
 
 ```

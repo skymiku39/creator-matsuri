@@ -43,6 +43,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      # 避免 GitHub Pages 把站台當 Jekyll 處理
+      - name: Add .nojekyll
+        run: touch dist/.nojekyll
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
