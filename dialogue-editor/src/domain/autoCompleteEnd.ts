@@ -1,12 +1,12 @@
 import type { Edge } from '@xyflow/react'
 import type { FlowNode } from './flowGraph'
-import { looksLikeReturnChoice } from './types'
+import { defaultEndAction, isLeaveChoice } from './endAction'
 import { nextId } from '../store/idFactory'
 
 /**
- * 為缺少結束節點的分支自動補上 end。
- * - 返回選項：若末端不是 end，接上 end
- * - 其他分支：若末端是 message／url 且無出邊，也接上 end（方便模擬結束）
+ * 為缺少結束節點的分支自動補上 end，並明確寫入行為：
+ * - 離開選項（如：等一下再過來）：結束對話
+ * - 其他選項：回到選單
  */
 export function autoCompleteEndNodes(
   nodes: FlowNode[],
@@ -21,8 +21,8 @@ export function autoCompleteEndNodes(
   }
 
   const menus = nodes.filter((n) => n.data.kind === 'choiceMenu')
-  let nextNodes = [...nodes]
-  let nextEdges = [...edges]
+  const nextNodes = [...nodes]
+  const nextEdges = [...edges]
   let added = 0
 
   for (const menu of menus) {
@@ -39,12 +39,10 @@ export function autoCompleteEndNodes(
       if (!tip) continue
       if (tip.data.kind === 'end') continue
 
-      const isReturn =
-        Boolean(choice.data.isReturn) ||
-        looksLikeReturnChoice(choice.data.text, choice.data.note)
+      const leave = isLeaveChoice(choice)
 
-      // 非返回且末端還有未走完的感覺：仍補 end，模擬可結束該分支
-      if (!isReturn && tip.data.kind !== 'message' && tip.data.kind !== 'url') {
+      // 一般選項還沒寫任何內容時先不補，等有對話／連結再補
+      if (!leave && tip.data.kind !== 'message' && tip.data.kind !== 'url') {
         continue
       }
 
@@ -61,9 +59,10 @@ export function autoCompleteEndNodes(
         },
         data: {
           kind: 'end',
-          title: isReturn ? '結束／返回' : '結束',
+          title: '',
           text: '',
-          note: isReturn ? '自動補全：返回選單' : '自動補全：分支結束',
+          note: '自動補全',
+          endAction: defaultEndAction(choice),
         },
       }
       const edge: Edge = {
@@ -82,7 +81,8 @@ export function autoCompleteEndNodes(
   return { nodes: nextNodes, edges: nextEdges, added }
 }
 
-function findBranchTip(
+/** 從選項沿第一條出邊走到分支最後一個節點 */
+export function findBranchTip(
   startId: string,
   nodesById: Map<string, FlowNode>,
   outMap: Map<string, Edge[]>,

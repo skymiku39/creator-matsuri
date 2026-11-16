@@ -6,7 +6,7 @@ const TOOLS: { kind: DialogueNodeKind; label: string; hint: string }[] = [
   { kind: 'choiceMenu', label: '選單', hint: 'Show Choices' },
   { kind: 'choice', label: '選項', hint: '分支入口' },
   { kind: 'url', label: '連結', hint: '開啟 URL' },
-  { kind: 'end', label: '結束', hint: '返回／離開' },
+  { kind: 'end', label: '結束', hint: '回到選單／結束對話' },
 ]
 
 export function Toolbox() {

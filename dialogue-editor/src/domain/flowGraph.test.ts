@@ -134,7 +134,7 @@ describe('flowGraph / validateFlow', () => {
     expect(issues.some((i) => i.message.includes('循環'))).toBe(true)
   })
 
-  it('缺少返回選項時提出警告', () => {
+  it('缺少離開選項時提出警告', () => {
     const nodes: FlowNode[] = [
       {
         id: 'menu',
@@ -156,7 +156,7 @@ describe('flowGraph / validateFlow', () => {
     ]
     const edges: Edge[] = [{ id: 'e', source: 'menu', target: 'cA' }]
     const issues = validateFlow(nodes, edges)
-    expect(issues.some((i) => i.message.includes('返回'))).toBe(true)
+    expect(issues.some((i) => i.message.includes('離開'))).toBe(true)
   })
 
   it('未連上主幹的節點為錯誤', () => {
@@ -173,7 +173,7 @@ describe('flowGraph / validateFlow', () => {
 })
 
 describe('looksLikeReturnChoice', () => {
-  it('不以備註中的說明文字誤判返回', () => {
+  it('不以備註中的說明文字誤判為離開選項', () => {
     expect(
       looksLikeReturnChoice(
         '再次辦活動的原因',

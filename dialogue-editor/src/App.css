@@ -866,6 +866,11 @@
   text-align: center;
 }
 
+/* 回到選單的結束節點：與選項同色，和「結束對話」區分 */
+.flow-node.end.end--menu {
+  border-top-color: var(--blue);
+}
+
 .react-flow__node {
   font-family: inherit;
 }

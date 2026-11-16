@@ -3,7 +3,7 @@ import {
   findStartMessages,
   type FlowNode,
 } from './flowGraph'
-import { looksLikeReturnChoice } from './types'
+import { isLeaveChoice, resolveEndAction } from './endAction'
 
 export type SimPhase =
   | {
@@ -63,14 +63,11 @@ function edgeToChoice(
   if (!choice || choice.data.kind !== 'choice') return null
   const letter =
     edge.sourceHandle?.match(/^opt-([A-F])$/i)?.[1]?.toUpperCase() ?? '?'
-  const isReturn =
-    Boolean(choice.data.isReturn) ||
-    looksLikeReturnChoice(choice.data.text, choice.data.note)
   return {
     choiceId: choice.id,
     letter,
     text: choice.data.text,
-    isReturn,
+    isReturn: isLeaveChoice(choice),
   }
 }
 
@@ -120,6 +117,7 @@ function buildChoicesPhase(
  * - message：進下一句／選單／url／結束
  * - choices：選擇後進入該分支第一個內容
  * - url：繼續往下或回選單／結束
+ * - 結束節點：endAction 為 menu 回到選單，finish 結束對話
  */
 export function advanceSimulation(
   phase: SimPhase,
@@ -181,7 +179,8 @@ function nextAfter(
         return buildChoicesPhase(choiceMenu, edges, nodesById)
       }
     }
-    return { type: 'finished', reason: 'end' }
+    // 分支沒有接結束節點：比照結束節點的預設行為
+    return endOfBranch(current, nodesById, edges, choiceMenu)
   }
 
   if (cursor.data.kind === 'message') {
@@ -204,16 +203,7 @@ function nextAfter(
     return buildChoicesPhase(cursor, edges, nodesById)
   }
   if (cursor.data.kind === 'end') {
-    // 若來自返回選項，回到選單；否則結束對話
-    const parentChoice = findParentChoice(current, nodesById, edges)
-    const isReturn =
-      parentChoice &&
-      (Boolean(parentChoice.data.isReturn) ||
-        looksLikeReturnChoice(parentChoice.data.text, parentChoice.data.note))
-    if (isReturn && choiceMenu) {
-      return buildChoicesPhase(choiceMenu, edges, nodesById)
-    }
-    return { type: 'finished', reason: 'end' }
+    return endOfBranch(cursor, nodesById, edges, choiceMenu)
   }
   if (cursor.data.kind === 'choice') {
     return nextAfter(cursor, nodesById, edges, openingMessages, choiceMenu, true)
@@ -222,23 +212,20 @@ function nextAfter(
   return { type: 'finished', reason: 'end' }
 }
 
-function findParentChoice(
-  node: FlowNode,
+/**
+ * 分支走到盡頭：依結束節點的行為回到選單或結束對話。
+ * `tip` 為結束節點，或沒有後繼的最後一個節點。
+ */
+function endOfBranch(
+  tip: FlowNode,
   nodesById: Map<string, FlowNode>,
   edges: Edge[],
-): FlowNode | null {
-  // 往上找最近的 choice：走入邊反向
-  let cursor: FlowNode | null = node
-  const visited = new Set<string>()
-  while (cursor) {
-    if (visited.has(cursor.id)) break
-    visited.add(cursor.id)
-    if (cursor.data.kind === 'choice') return cursor
-    const inbound = edges.find((e) => e.target === cursor!.id)
-    if (!inbound) break
-    cursor = nodesById.get(inbound.source) ?? null
+  choiceMenu: FlowNode | null,
+): SimPhase {
+  if (choiceMenu && resolveEndAction(tip, nodesById, edges) === 'menu') {
+    return buildChoicesPhase(choiceMenu, edges, nodesById)
   }
-  return null
+  return { type: 'finished', reason: 'end' }
 }
 
 /** 選擇選項後進入分支 */

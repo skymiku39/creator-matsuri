@@ -1,5 +1,6 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import type { DialogueNodeData } from '../../domain/types'
+import { endDisplayTitle, resolveEndActionById } from '../../domain/endAction'
 import { hasSpeakerOverride, resolveSpeakerName } from '../../domain/speaker'
 import { useDialogueStore } from '../../store/useDialogueStore'
 import { PlusHandle } from './PlusHandle'
@@ -65,7 +66,7 @@ export function ChoiceNode({ id, data, selected }: NodeProps<DialogueFlowNode>) 
     >
       <Handle type="target" position={Position.Left} className="target-handle" />
       <div className="flow-node__kind">
-        選項{data.isReturn ? ' · 返回' : ''}
+        選項{data.isReturn ? ' · 離開' : ''}
       </div>
       <div className="flow-node__title">{data.text || '（未命名）'}</div>
       <PlusHandle nodeId={id} sourceKind="choice" position={Position.Bottom} />
@@ -84,12 +85,21 @@ export function UrlNode({ id, data, selected }: NodeProps<DialogueFlowNode>) {
   )
 }
 
-export function EndNode({ data, selected }: NodeProps<DialogueFlowNode>) {
+export function EndNode({ id, data, selected }: NodeProps<DialogueFlowNode>) {
+  // 回傳字串，連線或所屬選項變動時才會重繪
+  const action = useDialogueStore((s) =>
+    resolveEndActionById(id, s.nodes, s.edges),
+  )
   return (
-    <div className={`flow-node end ${selected ? 'selected' : ''}`}>
+    <div className={`flow-node end end--${action} ${selected ? 'selected' : ''}`}>
       <Handle type="target" position={Position.Top} className="target-handle" />
-      <div className="flow-node__kind">結束</div>
-      <div className="flow-node__title">{data.title || '結束／返回'}</div>
+      <div className="flow-node__kind">
+        結束{data.endAction ? '' : ' · 自動'}
+      </div>
+      <div className="flow-node__title">
+        {action === 'menu' ? '↩ ' : '■ '}
+        {endDisplayTitle(data.title, action)}
+      </div>
     </div>
   )
 }

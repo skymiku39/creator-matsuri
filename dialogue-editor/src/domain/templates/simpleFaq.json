@@ -51,7 +51,7 @@
         "kind": "choiceMenu",
         "title": "對話選項",
         "text": "",
-        "note": "每個選項分支建議包含返回選單的選項"
+        "note": "選單建議包含一個離開對話的選項（如「等一下再過來」）"
       }
     },
     {
@@ -121,9 +121,10 @@
       },
       "data": {
         "kind": "end",
-        "title": "結束／返回",
+        "title": "",
         "text": "",
-        "note": ""
+        "note": "",
+        "endAction": "finish"
       }
     }
   ],
