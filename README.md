@@ -8,18 +8,22 @@
 
 **https://skymiku39.github.io/creator-matsuri/**
 
-（會導向 `/docs/` 編輯器；資料存在瀏覽器 localStorage，換裝置請匯出 JSON）
+資料存在瀏覽器 localStorage，換裝置請匯出 JSON。
 
-推送 `master` 時：
-- `docs/` 靜態檔會由分支 Pages 提供服務
-- 變更 `dialogue-editor/` 也會跑 Actions 建置（可改為 Source = GitHub Actions）
+部署只有一條路：推送 `master` 且變更到 `dialogue-editor/` 時，
+[`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) 會跑測試、建置並發佈。
+
+- repo 設定 **Pages → Source 必須是「GitHub Actions」**
+- 建置成品不進版控，不要提交 `docs/` 或 `dist/`
+- 舊網址 `/docs/` 會自動導回根路徑
 
 ## 專案結構
 
 ```
-dialogue-editor/            # Vite + React 流程圖編輯器
+dialogue-editor/            # Vite + React 流程圖編輯器（網頁版與 Electron 桌面版）
 creator-matsuri-tools/      # 輔助工具（Git submodule）
-《…》攤位01台詞 - 範本.xlsx    # 語句表範本
+.github/workflows/          # GitHub Pages 部署
+《…》攤位01台詞 - 範本.xlsx    # 主辦方的語句表範本（台詞內容的原始依據）
 ```
 
 輔助工具獨立倉庫：[creator-matsuri-tools](https://github.com/skymiku39/creator-matsuri-tools)（JSON 反編／流程圖匯出等）。
@@ -32,6 +36,38 @@ git clone --recurse-submodules https://github.com/skymiku39/creator-matsuri.git
 git submodule update --init --recursive
 ```
 
+## 資料怎麼流動
+
+```
+語句表範本.xlsx ──(照著填)──▶ 編輯器 ──匯出──▶ booth_XX_flow.json ──▶ creator-matsuri-tools
+                              │  ▲                                    （台詞.txt＋流程圖）
+                              └──┘ 匯入 JSON 可完整還原
+```
+
+- 專案 JSON 是編輯器唯一的匯入／匯出格式，也是匯出工具的輸入
+- 內建範本「兔子茶會」的台詞與 xlsx 範本逐句對應
+
+## 對話流程規則
+
+| 節點 | 說明 |
+|------|------|
+| 對話 | 一句台詞（Show Text） |
+| 選單 | 顯示選項（Show Choices，最多 A–F） |
+| 選項 | 某一條分支的入口文字；可標記為「離開選項」 |
+| 連結 | 外部 URL |
+| 結束 | 分支走完後的行為：**回到選單** 或 **結束對話** |
+
+結束節點的行為寫在 `data.endAction`：
+
+| 值 | 行為 |
+|----|------|
+| `menu` | 回到選單，玩家可繼續問其他選項 |
+| `finish` | 結束整段對話 |
+| 未指定 | 自動：一般選項之下回到選單；離開選項（如「等一下再過來」）之下結束對話 |
+
+「自動補全結束」會替缺少結束的分支補上節點並寫入明確的 `endAction`。
+舊版 JSON 沒有這個欄位，匯入後依「未指定」規則運作。
+
 ## 開發
 
 ```bash
@@ -40,9 +76,12 @@ npm install
 npm run dev
 ```
 
+- `npm test` — 單元測試
+- `npm run build` — 正式建置（請在確認完成後再執行）
+
 ## 版本
 
-目前版本：`1.1.0`（見 `dialogue-editor/package.json`）
+目前版本：`1.2.0`（見 `dialogue-editor/package.json`）
 
 獨立頁面：
 - `/` 編輯器（多人發言晶片、復原／重做）
@@ -60,7 +99,4 @@ npm run export -- "完整路徑\booth_01_flow.json"
 # 或把 JSON 拖到 匯出.bat（最省事）
 ```
 
-輸出純文字台詞（含說話者／人物表）與不重疊流程圖 PNG。
-
-- `npm test` — 單元測試
-- `npm run build` — 正式建置（請在確認完成後再執行）
+輸出純文字台詞（含說話者／人物表、每個分支走完後的行為）與不重疊流程圖 PNG。
