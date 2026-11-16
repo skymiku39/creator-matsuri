@@ -38,16 +38,17 @@ git submodule update --init --recursive
 
 ## 不在倉庫裡的素材
 
-設計原始檔與攤位專案檔不進版控，存放在維護者的 Google Drive（私人資料夾，未對外分享）：
+設計原始檔與攤位專案檔不進版控，由維護者私下保存（未對外分享）：
 
-[創作者的文化祭｜本機素材備份 2026-11-17](https://drive.google.com/drive/folders/1kEoqr3T3u8Rz3qj05BNriC3KuZoT9-CY)
+| 檔案 | 說明 | 位置 |
+|------|------|------|
+| `封面.png` | 活動封面圖 | Google Drive |
+| `booth_01_flow.json` | 攤位01 的編輯器專案檔（可用「匯入 JSON」還原） | Google Drive |
+| `會場宣傳海報_日常(橫向)20260730.psd` | 會場宣傳海報原始檔 | NAS |
+| `會場報名表_日常(橫向)20260730.psd` | 會場報名表原始檔 | NAS |
 
-| 檔案 | 說明 |
-|------|------|
-| `封面.png` | 活動封面圖 |
-| `會場宣傳海報_日常(橫向)20260730.psd` | 會場宣傳海報原始檔 |
-| `會場報名表_日常(橫向)20260730.psd` | 會場報名表原始檔 |
-| `booth_01_flow.json` | 攤位01 的編輯器專案檔（可用「匯入 JSON」還原） |
+- Google Drive：[創作者的文化祭｜本機素材備份 2026-11-17](https://drive.google.com/drive/folders/1kEoqr3T3u8Rz3qj05BNriC3KuZoT9-CY)
+- NAS：個人空間的 `RPG_Maker/創作者的文化祭/`
 
 ## 資料怎麼流動
 
