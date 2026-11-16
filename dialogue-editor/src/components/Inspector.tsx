@@ -4,7 +4,8 @@ import {
   canConnectKinds,
   KIND_LABEL,
 } from '../domain/connectionRules'
-import { CHOICE_LETTERS } from '../domain/types'
+import { CHOICE_LETTERS, type EndAction } from '../domain/types'
+import { END_ACTION_LABEL, resolveEndActionById } from '../domain/endAction'
 import {
   incomingEdges,
   nodeLabel,
@@ -156,7 +157,29 @@ export function Inspector() {
               updateNodeData(node.id, { isReturn: e.target.checked })
             }
           />
-          <span>標記為返回／離開選項</span>
+          <span>標記為離開選項（講完結束對話）</span>
+        </label>
+      )}
+
+      {d.kind === 'end' && (
+        <label className="field">
+          <span>走到這裡之後</span>
+          <select
+            value={d.endAction ?? ''}
+            onChange={(e) =>
+              updateNodeData(node.id, {
+                endAction: (e.target.value || undefined) as
+                  | EndAction
+                  | undefined,
+              })
+            }
+          >
+            <option value="">
+              自動（{END_ACTION_LABEL[resolveEndActionById(node.id, nodes, edges)]}）
+            </option>
+            <option value="menu">{END_ACTION_LABEL.menu}</option>
+            <option value="finish">{END_ACTION_LABEL.finish}</option>
+          </select>
         </label>
       )}
 

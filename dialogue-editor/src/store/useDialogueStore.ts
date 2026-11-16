@@ -81,7 +81,7 @@ function defaultNodeData(kind: DialogueNodeKind): DialogueNodeData {
       kind: 'choiceMenu',
       title: '對話選項',
       text: '',
-      note: '建議包含返回選項',
+      note: '建議包含離開選項',
     },
     choice: {
       kind: 'choice',
@@ -98,7 +98,7 @@ function defaultNodeData(kind: DialogueNodeKind): DialogueNodeData {
     },
     end: {
       kind: 'end',
-      title: '結束／返回',
+      title: '',
       text: '',
       note: '',
     },
@@ -137,7 +137,7 @@ function starterFlow(): { nodes: FlowNode[]; edges: Edge[] } {
       kind: 'choiceMenu',
       title: '對話選項',
       text: '',
-      note: '建議包含返回選項',
+      note: '建議包含離開選項',
     },
   }
   const choiceA: FlowNode = {
@@ -192,9 +192,10 @@ function starterFlow(): { nodes: FlowNode[]; edges: Edge[] } {
     position: { x: 700, y: 440 },
     data: {
       kind: 'end',
-      title: '結束／返回',
+      title: '',
       text: '',
       note: '',
+      endAction: 'finish',
     },
   }
   return {

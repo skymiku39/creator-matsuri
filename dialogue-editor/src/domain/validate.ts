@@ -1,6 +1,8 @@
 import type { FlowEdge, FlowNode } from './flowGraph'
 import { collectReachableIds, findStartMessages } from './flowGraph'
-import { looksLikeReturnChoice, type DialogueNodeData } from './types'
+import { findBranchTip } from './autoCompleteEnd'
+import { isLeaveChoice, resolveEndAction } from './endAction'
+import type { DialogueNodeData } from './types'
 
 export interface ValidationIssue {
   level: 'error' | 'warn'
@@ -134,15 +136,36 @@ export function validateFlow(
       }
     }
 
-    const hasReturn = choices.some((c) => {
-      const d = dataOf(c)
-      return d.isReturn || looksLikeReturnChoice(d.text, d.note)
-    })
-    if (outs.length > 0 && !hasReturn) {
+    const hasLeave = choices.some((c) => isLeaveChoice(c))
+    if (outs.length > 0 && !hasLeave) {
       issues.push({
         level: 'warn',
         message:
-          '建議至少保留一個「返回／稍後再來」選項（範本要求每個選單含返回）',
+          '建議至少保留一個「離開／稍後再來」選項（範本要求每個選單含離開選項）',
+        nodeId: menuId,
+      })
+    }
+
+    // 每個分支都回選單的話，玩家無法離開對話
+    const outMap = new Map<string, FlowEdge[]>()
+    for (const e of edges) {
+      const list = outMap.get(e.source) ?? []
+      list.push(e)
+      outMap.set(e.source, list)
+    }
+    const branchTips = outs
+      .map((e) => nodesById.get(e.target))
+      .filter((n): n is FlowNode => Boolean(n) && dataOf(n!).kind === 'choice')
+      .map((c) => findBranchTip(c.id, nodesById, outMap))
+      .filter((n): n is FlowNode => Boolean(n))
+    const canFinish = branchTips.some(
+      (tip) => resolveEndAction(tip, nodesById, edges) === 'finish',
+    )
+    if (hasLeave && branchTips.length > 0 && !canFinish) {
+      issues.push({
+        level: 'warn',
+        message:
+          '所有分支走完都會回到選單，對話無法結束；請把離開選項的結束節點設為「結束對話」',
         nodeId: menuId,
       })
     }

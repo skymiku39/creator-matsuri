@@ -6,6 +6,9 @@ export type DialogueNodeKind =
   | 'url'
   | 'end'
 
+/** 結束節點行為：menu＝回到選單繼續問；finish＝結束整段對話 */
+export type EndAction = 'menu' | 'finish'
+
 export interface DialogueNodeData extends Record<string, unknown> {
   kind: DialogueNodeKind
   /** 顯示用短標籤（非匯出編號） */
@@ -14,8 +17,16 @@ export interface DialogueNodeData extends Record<string, unknown> {
   text: string
   /** 備註（氣泡、超連結說明等） */
   note: string
-  /** 是否為「返回選單」類選項（驗證用） */
+  /**
+   * 選項節點：是否為「離開對話」類選項（如：等一下再過來）。
+   * 欄位名沿用舊版 JSON 的 isReturn。
+   */
   isReturn?: boolean
+  /**
+   * 結束節點：分支走完後的行為。
+   * 未指定時依所屬選項推定（一般選項回選單、離開選項結束對話）。
+   */
+  endAction?: EndAction
   /** 引用 meta.characters 的人物 id；空則用攤位預設說話者 */
   speakerId?: string
   /** 本句自訂說話者（優先於 speakerId／預設） */
@@ -73,7 +84,7 @@ export function normalizeBoothId(raw: string): string {
   return digits.padStart(2, '0')
 }
 
-/** 判斷選項文案是否像「返回／離開」類（收斂關鍵字，避免備註誤判） */
+/** 判斷選項文案是否像「離開對話」類（收斂關鍵字，避免備註誤判） */
 export function looksLikeReturnChoice(text: string, note = ''): boolean {
   const t = text.trim()
   const n = note.trim()

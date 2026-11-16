@@ -21,7 +21,9 @@ export function TutorialPage() {
             <li><strong>選單</strong>：顯示選項（Show Choices）</li>
             <li><strong>選項</strong>：某一條分支的入口文字</li>
             <li><strong>連結</strong>：外部 URL</li>
-            <li><strong>結束</strong>：分支結束；若標記返回會回到選單</li>
+            <li>
+              <strong>結束</strong>：分支走完後的行為，可選「回到選單」（繼續問其他選項）或「結束對話」
+            </li>
           </ul>
         </section>
 
@@ -65,8 +67,12 @@ export function TutorialPage() {
           <h2>4. 範本與自動補全</h2>
           <ol>
             <li>按上方 <strong>範本</strong>，可載入「兔子茶會」等預設流程</li>
-            <li>按 <strong>自動補全結束</strong>，會為缺少結束的分支補上 end 節點</li>
-            <li>勾選選項「標記為返回」時，也會嘗試自動補結束</li>
+            <li>
+              按 <strong>自動補全結束</strong>，會為缺少結束的分支補上結束節點：
+              一般選項補「回到選單」，離開選項（如「等一下再過來」）補「結束對話」
+            </li>
+            <li>勾選選項「標記為離開選項」時，也會嘗試自動補結束</li>
+            <li>選取結束節點後，可在右側「走到這裡之後」逐一改成另一種行為</li>
           </ol>
         </section>
 

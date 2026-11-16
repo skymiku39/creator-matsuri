@@ -1,5 +1,7 @@
 name: Deploy GitHub Pages
 
+# 網站唯一的部署來源：repo 設定 Pages → Source 必須是「GitHub Actions」。
+# 建置成品不進版控（不要再提交 docs/ 或 dist/）。
 on:
   push:
     branches: [master]
@@ -48,6 +50,27 @@ jobs:
 
       - name: Add .nojekyll
         run: touch dist/.nojekyll
+
+      # 舊網址 /docs/ 導回根路徑，既有書籤不會失效
+      - name: Redirect legacy /docs/ URL
+        run: |
+          mkdir -p dist/docs
+          cat > dist/docs/index.html <<'HTML'
+          <!DOCTYPE html>
+          <html lang="zh-Hant">
+            <head>
+              <meta charset="UTF-8" />
+              <meta http-equiv="refresh" content="0; url=../" />
+              <title>創作者的文化祭｜攤位台詞流程編輯器</title>
+              <script>
+                location.replace('../' + location.hash)
+              </script>
+            </head>
+            <body>
+              <p><a href="../">進入編輯器</a></p>
+            </body>
+          </html>
+          HTML
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

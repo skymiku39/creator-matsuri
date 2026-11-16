@@ -9,6 +9,7 @@ import {
   pickChoice,
 } from './simulate'
 import { getTemplate, DIALOGUE_TEMPLATES } from './templates/catalog'
+import { validateFlow } from './validate'
 
 describe('autoCompleteEndNodes', () => {
   it('為沒有結束的分支補上 end', () => {
@@ -49,51 +50,150 @@ describe('autoCompleteEndNodes', () => {
     ]
     const result = autoCompleteEndNodes(nodes, edges)
     expect(result.added).toBe(1)
-    expect(result.nodes.some((n) => n.data.kind === 'end')).toBe(true)
+    const end = result.nodes.find((n) => n.data.kind === 'end')
+    expect(end).toBeTruthy()
+    // 一般選項補的是「回到選單」
+    expect(end!.data.endAction).toBe('menu')
+  })
+
+  it('離開選項補的是「結束對話」', () => {
+    syncIdCounterFromGraph([], [])
+    const nodes: FlowNode[] = [
+      {
+        id: 'menu',
+        type: 'choiceMenu',
+        position: { x: 0, y: 0 },
+        data: { kind: 'choiceMenu', title: '選單', text: '', note: '' },
+      },
+      {
+        id: 'cE',
+        type: 'choice',
+        position: { x: 100, y: 0 },
+        data: { kind: 'choice', title: 'E', text: '等一下再過來', note: '' },
+      },
+      {
+        id: 'e1msg',
+        type: 'message',
+        position: { x: 100, y: 100 },
+        data: { kind: 'message', title: 'E1', text: '等等見', note: '' },
+      },
+    ]
+    const edges: Edge[] = [
+      { id: 'e1', source: 'menu', target: 'cE', sourceHandle: 'opt-E' },
+      { id: 'e2', source: 'cE', target: 'e1msg' },
+    ]
+    const result = autoCompleteEndNodes(nodes, edges)
+    expect(result.added).toBe(1)
+    const end = result.nodes.find((n) => n.data.kind === 'end')
+    expect(end!.data.endAction).toBe('finish')
   })
 })
 
 describe('simulate', () => {
-  it('可走完開場→選項→返回選單', () => {
-    const tpl = getTemplate('simple-faq')!
-    const { nodes, edges } = tpl.load()
-    let phase = createSimulation(nodes, edges)
-    expect(phase.type).toBe('message')
-
-    phase = advanceSimulation(phase, nodes, edges)
-    expect(phase.type).toBe('message')
-    phase = advanceSimulation(phase, nodes, edges)
-    expect(phase.type).toBe('choices')
-
-    if (phase.type !== 'choices') throw new Error('expected choices')
-    const leave = phase.options.find((o) => o.isReturn || /等一下/.test(o.text))
-    expect(leave).toBeTruthy()
-    phase = pickChoice(phase, nodes, edges, leave!.choiceId)
-    // 選項內容
-    expect(phase.type).toBe('message')
-    phase = advanceSimulation(phase, nodes, edges)
-    // 可能到 end 再回選單，或直接結束；simple-faq 無 end 時會 finished
-    // 先補 end 再測返回
-  })
-
-  it('補完結束後，返回選項會回到選單', () => {
-    const tpl = getTemplate('simple-faq')!
-    let { nodes, edges } = tpl.load()
-    const completed = autoCompleteEndNodes(nodes, edges)
-    nodes = completed.nodes
-    edges = completed.edges
-
+  /** 走到選單為止 */
+  function toMenu(nodes: FlowNode[], edges: Edge[]) {
     let phase = createSimulation(nodes, edges)
     while (phase.type === 'message') {
       phase = advanceSimulation(phase, nodes, edges)
     }
-    expect(phase.type).toBe('choices')
-    if (phase.type !== 'choices') return
-    const leave = phase.options.find((o) => /等一下/.test(o.text))!
-    phase = pickChoice(phase, nodes, edges, leave.choiceId)
-    expect(phase.type).toBe('message')
-    phase = advanceSimulation(phase, nodes, edges) // -> end -> choices
-    expect(phase.type).toBe('choices')
+    if (phase.type !== 'choices') throw new Error('expected choices')
+    return phase
+  }
+
+  /** 選擇後一路點到下一個選單或結束 */
+  function playBranch(
+    nodes: FlowNode[],
+    edges: Edge[],
+    menu: ReturnType<typeof toMenu>,
+    choiceId: string,
+  ) {
+    let phase = pickChoice(menu, nodes, edges, choiceId)
+    while (phase.type === 'message' || phase.type === 'url') {
+      phase = advanceSimulation(phase, nodes, edges)
+    }
+    return phase
+  }
+
+  function completedTemplate(id: string) {
+    const loaded = getTemplate(id)!.load()
+    return autoCompleteEndNodes(loaded.nodes, loaded.edges)
+  }
+
+  it('一般選項講完回到選單', () => {
+    const { nodes, edges } = completedTemplate('rabbit-tea-party')
+    const menu = toMenu(nodes, edges)
+    const normal = menu.options.filter((o) => !o.isReturn)
+    expect(normal.length).toBeGreaterThan(0)
+    for (const option of normal) {
+      expect(playBranch(nodes, edges, menu, option.choiceId).type).toBe(
+        'choices',
+      )
+    }
+  })
+
+  it('離開選項講完結束對話', () => {
+    const { nodes, edges } = completedTemplate('rabbit-tea-party')
+    const menu = toMenu(nodes, edges)
+    const leave = menu.options.find((o) => o.isReturn)!
+    expect(leave.text).toMatch(/等一下/)
+    expect(playBranch(nodes, edges, menu, leave.choiceId)).toEqual({
+      type: 'finished',
+      reason: 'end',
+    })
+  })
+
+  it('沒有結束節點的分支比照預設行為', () => {
+    // 未補全：一般選項的最後一句之後仍回選單
+    const { nodes, edges } = getTemplate('simple-faq')!.load()
+    const menu = toMenu(nodes, edges)
+    const normal = menu.options.find((o) => !o.isReturn)!
+    expect(playBranch(nodes, edges, menu, normal.choiceId).type).toBe('choices')
+  })
+
+  it('結束節點明確指定的行為優先於預設', () => {
+    const { nodes, edges } = completedTemplate('simple-faq')
+    const flipped = nodes.map((n) =>
+      n.data.kind === 'end'
+        ? {
+            ...n,
+            data: {
+              ...n.data,
+              endAction:
+                n.data.endAction === 'menu'
+                  ? ('finish' as const)
+                  : ('menu' as const),
+            },
+          }
+        : n,
+    )
+    const menu = toMenu(flipped, edges)
+    const normal = menu.options.find((o) => !o.isReturn)!
+    const leave = menu.options.find((o) => o.isReturn)!
+    expect(playBranch(flipped, edges, menu, normal.choiceId).type).toBe(
+      'finished',
+    )
+    expect(playBranch(flipped, edges, menu, leave.choiceId).type).toBe(
+      'choices',
+    )
+  })
+})
+
+describe('validate：結束行為', () => {
+  it('所有分支都回選單時提出警告', () => {
+    const loaded = getTemplate('simple-faq')!.load()
+    const { nodes, edges } = autoCompleteEndNodes(loaded.nodes, loaded.edges)
+    expect(
+      validateFlow(nodes, edges).some((i) => i.message.includes('無法結束')),
+    ).toBe(false)
+
+    const allMenu = nodes.map((n) =>
+      n.data.kind === 'end'
+        ? { ...n, data: { ...n.data, endAction: 'menu' as const } }
+        : n,
+    )
+    expect(
+      validateFlow(allMenu, edges).some((i) => i.message.includes('無法結束')),
+    ).toBe(true)
   })
 })
 
